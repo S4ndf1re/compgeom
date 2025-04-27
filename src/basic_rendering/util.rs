@@ -1,4 +1,5 @@
 use crate::gl::Gl;
+use crate::objects::polygon::Polygon;
 use glutin::config::Config;
 use glutin::context::{ContextApi, ContextAttributesBuilder, NotCurrentContext, Version};
 use glutin::display::{GetGlDisplay, GlDisplay};
@@ -91,4 +92,19 @@ pub unsafe fn create_shader(
         gl.CompileShader(shader);
         shader
     }
+}
+
+pub fn fit_all_polygons(polygons: &mut [(gl::types::GLenum, Polygon)]) -> (f32, f32, f32, f32) {
+    let mut bounds: (f32, f32, f32, f32) = (0.0, 0.0, 0.0, 0.0);
+    let mut last_x = 0.0;
+
+    for p in polygons {
+        p.1.shift_to(last_x, 0.0);
+        let p_bounds = p.1.get_bounds();
+        bounds.1 = p_bounds.1;
+        bounds.3 = bounds.3.max(p_bounds.3);
+        last_x = bounds.1;
+    }
+
+    bounds
 }

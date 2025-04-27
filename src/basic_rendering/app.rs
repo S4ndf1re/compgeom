@@ -1,7 +1,7 @@
-use crate::appstate::AppState;
-use crate::obj_file_manager::ObjFileManager;
-use crate::renderer::Renderer;
-use crate::util::{create_gl_context, gl_config_picker, window_attributes};
+use crate::basic_rendering::appstate::AppState;
+use crate::basic_rendering::renderer::Renderer;
+use crate::basic_rendering::util::{create_gl_context, gl_config_picker, window_attributes};
+use crate::objects::polygon::Polygon;
 use glutin::config::{ConfigTemplateBuilder, GetGlConfig};
 use glutin::context::PossiblyCurrentContext;
 use glutin::display::GetGlDisplay;
@@ -22,14 +22,14 @@ pub struct App {
     pub gl_context: Option<PossiblyCurrentContext>,
     gl_display: GlDisplayCreationState,
     pub exit_state: Result<(), Box<dyn Error>>,
-    object_file_manager: ObjFileManager,
+    polygons: Vec<(gl::types::GLenum, Polygon)>,
 }
 
 impl App {
     pub fn new(
         template: ConfigTemplateBuilder,
         display_builder: DisplayBuilder,
-        object_file_manager: ObjFileManager,
+        polygons: Vec<(gl::types::GLenum, Polygon)>,
     ) -> Self {
         Self {
             template,
@@ -38,7 +38,7 @@ impl App {
             gl_context: None,
             state: None,
             renderer: None,
-            object_file_manager,
+            polygons,
         }
     }
 }
@@ -105,7 +105,7 @@ impl ApplicationHandler for App {
         gl_context.make_current(&gl_surface).unwrap();
 
         self.renderer
-            .get_or_insert_with(|| Renderer::new(&gl_config.display(), &self.object_file_manager));
+            .get_or_insert_with(|| Renderer::new(&gl_config.display(), &self.polygons));
 
         // Try setting vsync.
         if let Err(res) = gl_surface

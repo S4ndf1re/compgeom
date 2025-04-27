@@ -1,6 +1,6 @@
-use crate::obj_file_manager::ObjFileManager;
-use crate::renderable::Renderable;
-use crate::util::{create_shader, get_gl_string};
+use crate::basic_rendering::renderable::Renderable;
+use crate::basic_rendering::util::{create_shader, fit_all_polygons, get_gl_string};
+use crate::objects::polygon::Polygon;
 use glutin::display::GlDisplay;
 use std::ffi::CString;
 use std::ops::Deref;
@@ -12,22 +12,17 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn new<D: GlDisplay>(gl_display: &D, obj_file_manager: &ObjFileManager) -> Self {
+    pub fn new<D: GlDisplay, P: AsRef<[(gl::types::GLenum, Polygon)]>>(
+        gl_display: &D,
+        polygons: P,
+    ) -> Self {
         unsafe {
-            let mut polygon_star_lines = obj_file_manager.get_polygon(0);
-            polygon_star_lines.shift_to(0.0, 0.0);
-            let star_lines_bounds = polygon_star_lines.get_bounds();
-
-            let mut polygon_triangle = obj_file_manager.get_custom_polygon([1, 2, 3]);
-            polygon_triangle.shift_to(star_lines_bounds.1, 0.0);
-            let triangle_bounds = polygon_triangle.get_bounds();
-
-            let mut polygon_star_full = obj_file_manager.get_polygon(0);
-            polygon_star_full.shift_to(triangle_bounds.1, 0.0);
-            let star_full_bounds = polygon_star_full.get_bounds();
-
-            let x_max = star_full_bounds.1;
-            let y_max = star_lines_bounds.3.max(star_full_bounds.3);
+            let mut polygons: Vec<(gl::types::GLenum, Polygon)> = polygons.as_ref().to_vec();
+            let mut bounds = fit_all_polygons(&mut polygons);
+            bounds.0 = bounds.0 - 0.1;
+            bounds.1 = bounds.1 + 0.1;
+            bounds.2 = bounds.2 - 0.1;
+            bounds.3 = bounds.3 + 0.1;
 
             let gl = crate::gl::Gl::load_with(|symbol| {
                 let symbol = CString::new(symbol).unwrap();
@@ -57,6 +52,8 @@ impl Renderer {
 
             gl.UseProgram(program);
 
+            gl.Enable(gl::PROGRAM_POINT_SIZE);
+            gl.Enable(gl::CULL_FACE);
             gl.FrontFace(gl::CCW);
             gl.CullFace(gl::FRONT);
 
@@ -66,7 +63,7 @@ impl Renderer {
             gl.DeleteShader(vertex_shader);
             gl.DeleteShader(fragment_shader);
 
-            let (left, right, bottom, top) = (0.0, x_max, 0.0, y_max);
+            let (left, right, bottom, top) = bounds;
 
             let (near, far) = (-1.0, 1.0); // Set -1 and 1 for Ortho2D equivalent
 
@@ -80,27 +77,13 @@ impl Renderer {
             // NOTE(Jan): This has to get transposed, since opengl uses column first storage, instead of row first
             gl.UniformMatrix4fv(ortho_projection, 1, 1, matrix.as_ptr());
 
-            let poly_render_star =
-                Renderable::new(gl_display, program, &polygon_star_lines, gl::LINE_LOOP);
-            let poly_render_triangle =
-                Renderable::new(gl_display, program, &polygon_triangle, gl::TRIANGLES);
-
-            polygon_triangle.set_color([1.0, 1.0, 1.0]);
-            let poly_render_triangle_lines =
-                Renderable::new(gl_display, program, &polygon_triangle, gl::LINE_LOOP);
-
-            let poly_render_star_full =
-                Renderable::new(gl_display, program, &polygon_star_full, gl::TRIANGLE_FAN);
-
             Self {
                 program,
                 gl,
-                renderable: vec![
-                    poly_render_star,
-                    poly_render_triangle,
-                    poly_render_triangle_lines,
-                    poly_render_star_full,
-                ],
+                renderable: polygons
+                    .iter()
+                    .map(|p| Renderable::new(gl_display, program, &p.1, p.0))
+                    .collect(),
             }
         }
     }
@@ -149,6 +132,7 @@ varying vec3 vColor;
 
 void main() {
     gl_Position = ortho * vec4(position, 1.0);
+    gl_PointSize = 10.0;
     vColor = color;
 }
 \0";

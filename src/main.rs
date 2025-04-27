@@ -1,18 +1,15 @@
-mod app;
-mod appstate;
-mod obj_file_manager;
-mod polygon;
-mod renderable;
-mod renderer;
-mod util;
+mod algorithm;
+mod basic_rendering;
+mod objects;
 
 use std::error::Error;
 
-use crate::app::App;
-use crate::obj_file_manager::ObjFileManager;
-use crate::util::window_attributes;
+use crate::basic_rendering::renderable::Renderable;
+use basic_rendering::app::App;
+use basic_rendering::util::window_attributes;
 use glutin::config::ConfigTemplateBuilder;
 use glutin_winit::DisplayBuilder;
+use objects::obj_file_manager::ObjFileManager;
 
 pub mod gl {
     #![allow(clippy::all)]
@@ -32,7 +29,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Create a display
     let display_builder = DisplayBuilder::new().with_window_attributes(Some(window_attributes()));
 
-    let mut app = App::new(template, display_builder, obj_file_manager);
+    let mut app = App::new(
+        template,
+        display_builder,
+        vec![(gl::POINTS, obj_file_manager.get_polygon(0))],
+    );
     event_loop.run_app(&mut app)?;
 
     app.exit_state

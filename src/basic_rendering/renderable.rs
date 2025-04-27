@@ -1,4 +1,4 @@
-use crate::polygon::{Polygon, Position, Vertex};
+use crate::objects::polygon::{Polygon, Position, Vertex};
 use gl::types::GLsizei;
 use glutin::display::GlDisplay;
 use std::ffi::CString;
@@ -36,8 +36,8 @@ impl Renderable {
             gl.BindBuffer(gl::ARRAY_BUFFER, vbo);
             gl.BufferData(
                 gl::ARRAY_BUFFER,
-                (polygon.verticies.len() * std::mem::size_of::<Vertex>()) as gl::types::GLsizeiptr,
-                polygon.verticies.as_ptr() as *const _,
+                (polygon.vertices.len() * std::mem::size_of::<Vertex>()) as gl::types::GLsizeiptr,
+                polygon.vertices.as_ptr() as *const _,
                 gl::STATIC_DRAW,
             );
 
@@ -69,7 +69,7 @@ impl Renderable {
                 vbo,
                 gl,
                 mode,
-                count: polygon.verticies.len(),
+                count: polygon.vertices.len(),
             }
         }
     }

@@ -1,4 +1,4 @@
-use crate::polygon::{Polygon, Vertex};
+use crate::objects::polygon::{Polygon, Vertex};
 use std::fs;
 
 pub struct ObjFileManager {
@@ -58,7 +58,7 @@ impl ObjFileManager {
     }
 
     pub fn get_polygon(&self, idx: usize) -> Polygon {
-        assert!(idx >= 0 && idx < self.len_polygons());
+        assert!(idx < self.len_polygons());
 
         let mut points = vec![];
 
