@@ -4,7 +4,9 @@ use glutin::config::Config;
 use glutin::context::{ContextApi, ContextAttributesBuilder, NotCurrentContext, Version};
 use glutin::display::{GetGlDisplay, GlDisplay};
 use glutin::prelude::GlConfig;
+use num::Float;
 use std::ffi::CStr;
+use std::fmt::Debug;
 use winit::raw_window_handle::HasWindowHandle;
 use winit::window::{Window, WindowAttributes};
 
@@ -94,12 +96,14 @@ pub unsafe fn create_shader(
     }
 }
 
-pub fn fit_all_polygons(polygons: &mut [(gl::types::GLenum, Polygon)]) -> (f32, f32, f32, f32) {
-    let mut bounds: (f32, f32, f32, f32) = (0.0, 0.0, 0.0, 0.0);
-    let mut last_x = 0.0;
+pub fn fit_all_polygons<T: Float + Copy + Debug>(
+    polygons: &mut [(gl::types::GLenum, Polygon<T>)],
+) -> (T, T, T, T) {
+    let mut bounds: (T, T, T, T) = (T::zero(), T::zero(), T::zero(), T::zero());
+    let mut last_x = T::zero();
 
     for p in polygons {
-        p.1.shift_to(last_x, 0.0);
+        p.1.shift_to(last_x, T::zero());
         let p_bounds = p.1.get_bounds();
         bounds.1 = p_bounds.1;
         bounds.3 = bounds.3.max(p_bounds.3);

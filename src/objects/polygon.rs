@@ -1,26 +1,51 @@
+use num::cast::cast;
+use num::Float;
+use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Add, Mul, Sub};
 
-pub type Position = [f32; 3];
+pub type Position<T: Float> = [T; 3];
 pub type Color = [f32; 3];
 
 #[repr(C, packed)]
-#[derive(Clone, Copy)]
-pub struct Vertex {
-    pub position: Position,
+#[derive(Clone, Copy, Debug)]
+pub struct Vertex<T> {
+    pub position: Position<T>,
     pub color: Color,
 }
 
-impl Vertex {
-    pub fn magnitude(&self) -> f32 {
-        (*self * *self).sqrt()
+impl<T> Vertex<T>
+where
+    T: Float + Copy,
+{
+    pub fn magnitude(&self) -> T {
+        let magnitude = (*self * *self).sqrt();
+        if magnitude < T::epsilon() {
+            T::from(1.0).unwrap()
+        } else {
+            magnitude
+        }
     }
-    pub fn cosine(&self, other: &Vertex) -> f32 {
+    pub fn cosine(&self, other: &Vertex<T>) -> T {
         (*self * *other) / (self.magnitude() * other.magnitude())
+    }
+
+    pub fn to_other<O: Float + Copy + Debug>(&self) -> Vertex<O> {
+        Vertex {
+            position: [
+                cast(self.position[0]).unwrap(),
+                cast(self.position[1]).unwrap(),
+                cast(self.position[2]).unwrap(),
+            ],
+            color: self.color,
+        }
     }
 }
 
-impl Add for Vertex {
-    type Output = Vertex;
+impl<T> Add for Vertex<T>
+where
+    T: Float + Copy,
+{
+    type Output = Vertex<T>;
 
     fn add(self, rhs: Self) -> Self::Output {
         Vertex {
@@ -34,8 +59,11 @@ impl Add for Vertex {
     }
 }
 
-impl Sub for Vertex {
-    type Output = Vertex;
+impl<T> Sub for Vertex<T>
+where
+    T: Float + Copy,
+{
+    type Output = Vertex<T>;
 
     fn sub(self, rhs: Self) -> Self::Output {
         Vertex {
@@ -49,8 +77,11 @@ impl Sub for Vertex {
     }
 }
 
-impl Mul for Vertex {
-    type Output = f32;
+impl<T> Mul for Vertex<T>
+where
+    T: Float + Copy,
+{
+    type Output = T;
 
     fn mul(self, rhs: Self) -> Self::Output {
         self.position[0] * rhs.position[0]
@@ -59,20 +90,48 @@ impl Mul for Vertex {
     }
 }
 
-#[derive(Clone)]
-pub struct Polygon {
-    pub vertices: Vec<Vertex>,
+impl<T> Mul<T> for Vertex<T>
+where
+    T: Float + Copy,
+{
+    type Output = Vertex<T>;
+    fn mul(self, rhs: T) -> Self::Output {
+        Vertex {
+            position: [
+                self.position[0] * rhs,
+                self.position[1] * rhs,
+                self.position[2] * rhs,
+            ],
+            color: self.color,
+        }
+    }
 }
 
-impl Polygon {
-    pub fn new(verticies: Vec<Vertex>) -> Self {
+#[derive(Clone, Debug)]
+pub struct Polygon<T>
+where
+    T: Debug + Copy,
+{
+    pub vertices: Vec<Vertex<T>>,
+}
+
+impl<T> Polygon<T>
+where
+    T: Float + Clone + Debug + Copy,
+{
+    pub fn new(verticies: Vec<Vertex<T>>) -> Self {
         Self {
             vertices: verticies,
         }
     }
 
-    pub fn get_bounds(&self) -> (f32, f32, f32, f32) {
-        let mut bounds = (f32::MAX, f32::MIN, f32::MAX, f32::MIN);
+    pub fn get_bounds(&self) -> (T, T, T, T) {
+        let mut bounds = (
+            T::max_value(),
+            T::min_value(),
+            T::max_value(),
+            T::min_value(),
+        );
 
         for v in &self.vertices {
             bounds = (
@@ -87,7 +146,7 @@ impl Polygon {
     }
 
     /// Shift polygon so that x_0, y_0 are set to x, y
-    pub fn shift_to(&mut self, x: f32, y: f32) {
+    pub fn shift_to(&mut self, x: T, y: T) {
         let bounds = self.get_bounds();
 
         let x_diff = x - bounds.0;
@@ -103,5 +162,20 @@ impl Polygon {
         for v in &mut self.vertices {
             v.color = color;
         }
+    }
+}
+
+impl<T> Display for Polygon<T>
+where
+    T: Float + Copy + Display + Debug,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Polygon( verticies: \n")?;
+        Ok(for v in &self.vertices {
+            let x = v.position[0];
+            let y = v.position[1];
+            let z = v.position[1];
+            write!(f, "\tV({:.}, {:.}, {:.})", x, y, z)?
+        })
     }
 }

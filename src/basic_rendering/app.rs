@@ -8,28 +8,36 @@ use glutin::display::GetGlDisplay;
 use glutin::prelude::*;
 use glutin::surface::SwapInterval;
 use glutin_winit::{DisplayBuilder, GlWindow};
+use num::Float;
 use std::error::Error;
+use std::fmt::Debug;
 use std::num::NonZeroU32;
 use winit::application::ApplicationHandler;
 use winit::event::{KeyEvent, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
 use winit::keyboard::{Key, NamedKey};
 
-pub struct App {
+pub struct App<T>
+where
+    T: Debug + Copy,
+{
     pub template: ConfigTemplateBuilder,
     pub renderer: Option<Renderer>,
     pub state: Option<AppState>,
     pub gl_context: Option<PossiblyCurrentContext>,
     gl_display: GlDisplayCreationState,
     pub exit_state: Result<(), Box<dyn Error>>,
-    polygons: Vec<(gl::types::GLenum, Polygon)>,
+    polygons: Vec<(gl::types::GLenum, Polygon<T>)>,
 }
 
-impl App {
+impl<T> App<T>
+where
+    T: Float + Copy + Debug + 'static,
+{
     pub fn new(
         template: ConfigTemplateBuilder,
         display_builder: DisplayBuilder,
-        polygons: Vec<(gl::types::GLenum, Polygon)>,
+        polygons: Vec<(gl::types::GLenum, Polygon<T>)>,
     ) -> Self {
         Self {
             template,
@@ -42,7 +50,10 @@ impl App {
         }
     }
 }
-impl ApplicationHandler for App {
+impl<T> ApplicationHandler for App<T>
+where
+    T: Float + Debug + Copy + 'static,
+{
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         let (window, gl_config) = match &self.gl_display {
             // We just created the event loop, so initialize the display, pick the config, and

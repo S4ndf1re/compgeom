@@ -1,13 +1,18 @@
 use crate::objects::polygon::{Polygon, Vertex};
-use std::fs;
+use num::Float;
+use std::str::FromStr;
+use std::{fmt, fs};
 
-pub struct ObjFileManager {
-    pub objects: Vec<(f32, f32)>,
+pub struct ObjFileManager<T> {
+    pub objects: Vec<(T, T)>,
     pub polygons: Vec<Vec<usize>>,
 }
 
-impl ObjFileManager {
-    fn read_file(path: &str) -> (Vec<(f32, f32)>, Vec<Vec<usize>>) {
+impl<T> ObjFileManager<T>
+where
+    T: Float + Copy + FromStr<Err: fmt::Debug> + fmt::Debug,
+{
+    fn read_file(path: &str) -> (Vec<(T, T)>, Vec<Vec<usize>>) {
         let file_content = fs::read_to_string(path).expect("File did not exists, or other error");
         let lines = file_content.split("\n").collect::<Vec<&str>>();
 
@@ -26,8 +31,8 @@ impl ObjFileManager {
                     panic!("ObjFileManager does not support more than 2 coordinates at the moment");
                 }
                 let tuple = (
-                    splitted[1].parse::<f32>().unwrap(),
-                    splitted[2].parse::<f32>().unwrap(),
+                    splitted[1].parse::<T>().unwrap(),
+                    splitted[2].parse::<T>().unwrap(),
                 );
                 vertices.push(tuple);
             }
@@ -45,7 +50,7 @@ impl ObjFileManager {
         (vertices, polygons)
     }
 
-    pub fn new(path: &str) -> ObjFileManager {
+    pub fn new(path: &str) -> ObjFileManager<T> {
         let (objects, mut polygons) = Self::read_file(path);
         if polygons.is_empty() {
             polygons.push((1..=objects.len()).collect::<Vec<usize>>())
@@ -57,7 +62,7 @@ impl ObjFileManager {
         self.polygons.len()
     }
 
-    pub fn get_polygon(&self, idx: usize) -> Polygon {
+    pub fn get_polygon(&self, idx: usize) -> Polygon<T> {
         assert!(idx < self.len_polygons());
 
         let mut points = vec![];
@@ -65,7 +70,7 @@ impl ObjFileManager {
         for p in &self.polygons[idx] {
             let tuple = &self.objects[*p - 1];
             points.push(Vertex {
-                position: [tuple.0, tuple.1, 0.0],
+                position: [tuple.0, tuple.1, T::zero()],
                 color: [1.0, 0.0, 0.0],
             });
         }
@@ -73,13 +78,13 @@ impl ObjFileManager {
         Polygon::new(points)
     }
 
-    pub fn get_custom_polygon<T: AsRef<[usize]>>(&self, indizes: T) -> Polygon {
+    pub fn get_custom_polygon<I: AsRef<[usize]>>(&self, indizes: I) -> Polygon<T> {
         let mut points = vec![];
 
         for p in indizes.as_ref() {
             let tuple = &self.objects[*p - 1];
             points.push(Vertex {
-                position: [tuple.0, tuple.1, 0.0],
+                position: [tuple.0, tuple.1, T::zero()],
                 color: [1.0, 0.0, 0.0],
             });
         }

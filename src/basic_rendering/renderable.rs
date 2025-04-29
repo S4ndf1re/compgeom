@@ -1,7 +1,9 @@
 use crate::objects::polygon::{Polygon, Position, Vertex};
 use gl::types::GLsizei;
 use glutin::display::GlDisplay;
+use num::Float;
 use std::ffi::CString;
+use std::fmt::Debug;
 
 pub struct Renderable {
     gl: crate::gl::Gl,
@@ -13,10 +15,10 @@ pub struct Renderable {
 }
 
 impl Renderable {
-    pub fn new<D: GlDisplay>(
+    pub fn new<T: Float + Debug + Copy + 'static, D: GlDisplay>(
         gl_display: &D,
         program: gl::types::GLuint,
-        polygon: &Polygon,
+        polygon: &Polygon<T>,
         mode: gl::types::GLenum,
     ) -> Self {
         unsafe {
@@ -31,13 +33,14 @@ impl Renderable {
             gl.GenVertexArrays(1, &mut vao);
             gl.BindVertexArray(vao);
 
+            let buffer: Vec<Vertex<f32>> = polygon.vertices.iter().map(|v| v.to_other()).collect();
             let mut vbo = std::mem::zeroed();
             gl.GenBuffers(1, &mut vbo);
             gl.BindBuffer(gl::ARRAY_BUFFER, vbo);
             gl.BufferData(
                 gl::ARRAY_BUFFER,
-                (polygon.vertices.len() * std::mem::size_of::<Vertex>()) as gl::types::GLsizeiptr,
-                polygon.vertices.as_ptr() as *const _,
+                (buffer.len() * std::mem::size_of::<Vertex<f32>>()) as gl::types::GLsizeiptr,
+                buffer.as_ptr() as *const _,
                 gl::STATIC_DRAW,
             );
 
@@ -47,7 +50,7 @@ impl Renderable {
                 3,
                 gl::FLOAT,
                 0,
-                std::mem::size_of::<Vertex>() as gl::types::GLsizei,
+                std::mem::size_of::<Vertex<f32>>() as gl::types::GLsizei,
                 std::ptr::null(),
             );
             gl.EnableVertexAttribArray(pos_attrib as gl::types::GLuint);
@@ -58,8 +61,8 @@ impl Renderable {
                 3,
                 gl::FLOAT,
                 0,
-                std::mem::size_of::<Vertex>() as gl::types::GLsizei,
-                std::mem::size_of::<Position>() as *const _,
+                std::mem::size_of::<Vertex<f32>>() as gl::types::GLsizei,
+                std::mem::size_of::<Position<f32>>() as *const _,
             );
             gl.EnableVertexAttribArray(col_attrib as gl::types::GLuint);
 

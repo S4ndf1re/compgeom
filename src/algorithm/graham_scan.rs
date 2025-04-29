@@ -1,10 +1,10 @@
 use crate::objects::polygon::Vertex;
+use num::Float;
 use std::cmp::Ordering;
-use std::collections::VecDeque;
 
 /// Test if p->test->q is a right turn (true)
 /// NOTE: this function only operates on 2d at the moment
-pub fn is_right_turn(p: Vertex, test: Vertex, q: Vertex) -> bool {
+pub fn is_right_turn<T: Float + Copy>(p: Vertex<T>, test: Vertex<T>, q: Vertex<T>) -> bool {
     let a_vec = q - test;
     let b_vec = test - p;
 
@@ -14,13 +14,14 @@ pub fn is_right_turn(p: Vertex, test: Vertex, q: Vertex) -> bool {
     let b = b_vec.position[0];
     let d = b_vec.position[1];
 
+    let det = a * d - b * c;
     // Account for f32 errors using EPSILON (smallest f32 representable number without error)
-    a * d - b * c >= -f32::EPSILON
+    det >= T::zero()
 }
 
 /// Test if p->test->q is a right turn (true)
 /// NOTE: this function only operates on 2d at the moment
-pub fn is_left_turn(p: Vertex, test: Vertex, q: Vertex) -> bool {
+pub fn is_left_turn<T: Float + Copy>(p: Vertex<T>, test: Vertex<T>, q: Vertex<T>) -> bool {
     let a_vec = q - test;
     let b_vec = test - p;
 
@@ -30,22 +31,25 @@ pub fn is_left_turn(p: Vertex, test: Vertex, q: Vertex) -> bool {
     let b = b_vec.position[0];
     let d = b_vec.position[1];
 
+    let det = a * d - b * c;
     // Account for f32 errors using EPSILON (smallest f32 representable number without error)
-    a * d - b * c <= f32::EPSILON
+    det <= T::zero()
 }
 
 /// Compute the convex hull using graham scan, sorting by angle (not x-coordinate)
-pub fn graham_scan_by_angle<T: AsRef<[Vertex]>>(points: T) -> Option<Vec<Vertex>> {
-    // Complex sorting function, to properly use the minimal y value. if multiple equal min_y values exists, use min x
-    let min_y_point = points.as_ref().iter().min_by(|v1, v2| {
-        // Copy here, to avoid using unsafe function calls (UB), since position is packed and not properly aligned
-        let v1_x: f32 = v1.position[0];
-        let v2_x: f32 = v2.position[0];
+pub fn graham_scan_by_angle<T: Float + Copy, P: AsRef<[Vertex<T>]>>(
+    points: P,
+) -> Option<Vec<Vertex<T>>> {
+    let indices: Vec<usize> = points.as_ref().iter().enumerate().map(|(i, _)| i).collect();
 
-        let v1_y: f32 = v1.position[1];
-        let v2_y: f32 = v2.position[1];
-        let ord_x = v1_x.total_cmp(&v2_x);
-        let ord_y = v1_y.total_cmp(&v2_y);
+    // Complex sorting function, to properly use the minimal y value. if multiple equal min_y values exists, use min x
+    let min_y_point = indices.iter().min_by(|idx_1, idx_2| {
+        // Copy here, to avoid using unsafe function calls (UB), since position is packed and not properly aligned
+        let v1 = points.as_ref()[**idx_1].position;
+        let v2 = points.as_ref()[**idx_2].position;
+
+        let ord_x = v1[0].partial_cmp(&v2[0]).unwrap();
+        let ord_y = v1[1].partial_cmp(&v2[1]).unwrap();
 
         match ord_y {
             Ordering::Equal => ord_x,
@@ -57,39 +61,194 @@ pub fn graham_scan_by_angle<T: AsRef<[Vertex]>>(points: T) -> Option<Vec<Vertex>
         return None;
     }
     let min_y_point = min_y_point.unwrap().clone();
+    let x_axis = Vertex {
+        position: [T::one(), T::zero(), T::zero()],
+        color: [0.0, 0.0, 0.0],
+    };
 
-    // Sort by angle
-    let mut angled = points
-        .as_ref()
+    // Sort by angle, ignoring min_y_point, since the is point always part of hull
+    let mut angled = indices
         .iter()
-        .map(|v| (min_y_point.cosine(v), *v))
+        .filter_map(|v| {
+            if *v == min_y_point {
+                None
+            } else {
+                Some((
+                    x_axis
+                        .cosine(&(points.as_ref()[*v] - points.as_ref()[min_y_point]))
+                        .acos(),
+                    *v,
+                ))
+            }
+        })
         .collect::<Vec<_>>();
-    angled.sort_by(|v1, v2| v1.0.total_cmp(&v2.0));
+    // Sort by angle, if multiple angles are the same, order by magnitude. Note, that larger is more important, meaning it should get sorted first.
+    // This also means, that we have to invert the sort order for the magnitude
+    angled.sort_by(|v1, v2| {
+        let cosine = v1.0.partial_cmp(&v2.0).unwrap();
 
-    let mut hull = VecDeque::new();
-    hull.push_back(angled[0].1);
-    hull.push_back(angled[1].1);
+        if cosine == Ordering::Equal {
+            points.as_ref()[v2.1]
+                .magnitude()
+                .partial_cmp(&points.as_ref()[v1.1].magnitude())
+                .unwrap()
+        } else {
+            cosine
+        }
+    });
+
+    let mut hull = Vec::new();
+    hull.push(points.as_ref()[min_y_point]);
+    hull.push(points.as_ref()[angled[0].1]);
 
     if angled.len() <= 2 {
         return Some(hull.into());
     }
 
-    for i in 2..angled.len() {
-        let next_vertex = angled[i].1;
-        loop {
+    for i in 1..angled.len() {
+        let next_vertex = points.as_ref()[angled[i].1];
+        while hull.len() >= 2 {
             // Exit condition if hull is not found
             if hull.is_empty() {
                 return None;
             }
 
             if is_left_turn(hull[hull.len() - 2], hull[hull.len() - 1], next_vertex) {
-                hull.push_back(next_vertex);
+                hull.push(next_vertex);
                 break;
             } else {
-                hull.pop_back();
+                hull.pop();
+                if hull.len() < 2 {
+                    // this is a special case, when the first vector inserted creates a left turn,
+                    // the pop will leave the hull at one vertex.
+                    // This also means, that the vertex that caused the pop mus be in the outer hull (potentially)
+                    hull.push(next_vertex);
+                    break;
+                }
             }
         }
     }
 
-    Some(hull.into())
+    Some(hull)
+}
+
+enum Iteration {
+    Upper,
+    Lower,
+}
+
+pub fn graham_scan_by_x<T: Float + Copy, P: AsRef<[Vertex<T>]>>(
+    points: P,
+) -> Option<Vec<Vertex<T>>> {
+    let indizes: Vec<usize> = points.as_ref().iter().enumerate().map(|(i, _)| i).collect();
+
+    let min_x = *indizes.iter().min_by(|p1, p2| {
+        let x1 = points.as_ref()[**p1].position[0];
+        let x2 = points.as_ref()[**p2].position[0];
+
+        x1.partial_cmp(&x2).unwrap()
+    })?;
+
+    let max_x = *indizes.iter().max_by(|p1, p2| {
+        let x1 = points.as_ref()[**p1].position[0];
+        let x2 = points.as_ref()[**p2].position[0];
+
+        x1.partial_cmp(&x2).unwrap()
+    })?;
+
+    let diff = points.as_ref()[max_x] - points.as_ref()[min_x];
+    let normal_upper_lower_separator = Vertex {
+        position: [-diff.position[1], diff.position[0], T::zero()],
+        color: [0.0, 0.0, 0.0],
+    };
+    let midpoint = points.as_ref()[min_x] * T::from(0.5).unwrap()
+        + points.as_ref()[max_x] * T::from(0.5).unwrap();
+
+    let mut x_mapped: Vec<(T, usize)> = indizes
+        .iter()
+        .filter_map(|idx| {
+            if *idx == min_x {
+                None
+            } else {
+                Some((points.as_ref()[*idx].position[0], *idx))
+            }
+        })
+        .collect();
+
+    x_mapped.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+
+    // Split up in upper and lower half
+    let upper = x_mapped
+        .iter()
+        .filter(|idx| {
+            normal_upper_lower_separator.cosine(&(points.as_ref()[idx.1] - midpoint)) >= T::zero()
+        })
+        .collect::<Vec<_>>();
+
+    let tmp = (T::zero(), min_x);
+    let mut lower = x_mapped
+        .iter()
+        .filter(|idx| {
+            normal_upper_lower_separator.cosine(&(points.as_ref()[idx.1] - midpoint)) < T::zero()
+        })
+        .collect::<Vec<_>>();
+    lower.push(&tmp); // Use tmp to avoid borrow checker from rust
+    lower.reverse();
+
+    let mut hull = Vec::new();
+    hull.push(points.as_ref()[min_x]);
+    if !upper.is_empty() {
+        hull.push(points.as_ref()[upper[0].1]);
+    } else {
+        hull.push(points.as_ref()[lower[0].1]);
+    }
+
+    if x_mapped.len() <= 2 {
+        return Some(hull.into());
+    }
+
+    let mut slice = &upper[..];
+    let mut iteration = Iteration::Upper;
+    // The loop below will execute twice. Once with slice = upper, the second time with slice = lower. Avoid code duplication
+    for _ in 0..2 {
+        for i in 1..slice.len() {
+            let next_vertex = points.as_ref()[slice[i].1];
+            while hull.len() >= 2 {
+                // Exit condition if hull is not found
+                if hull.is_empty() {
+                    return None;
+                }
+
+                if is_right_turn(hull[hull.len() - 2], hull[hull.len() - 1], next_vertex) {
+                    hull.push(next_vertex);
+                    break;
+                } else {
+                    hull.pop();
+                    if hull.len() < 2 {
+                        // this is a special case, when the first vector inserted creates a left turn,
+                        // the pop will leave the hull at one vertex.
+                        // This also means, that the vertex that caused the pop mus be in the outer hull (potentially)
+                        hull.push(next_vertex);
+                        break;
+                    }
+                }
+            }
+        }
+        match iteration {
+            Iteration::Upper => {
+                slice = &lower[..];
+                // Also, add the next point, since we have to look at the bottom part
+                if !slice.is_empty() {
+                    hull.push(points.as_ref()[slice[0].1]);
+                }
+
+                iteration = Iteration::Lower;
+            }
+            _ => (),
+        }
+    }
+
+    // Remove last point, since the last point == first point
+    hull.pop();
+    Some(hull)
 }

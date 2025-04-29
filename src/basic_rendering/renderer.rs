@@ -2,7 +2,9 @@ use crate::basic_rendering::renderable::Renderable;
 use crate::basic_rendering::util::{create_shader, fit_all_polygons, get_gl_string};
 use crate::objects::polygon::Polygon;
 use glutin::display::GlDisplay;
+use num::Float;
 use std::ffi::CString;
+use std::fmt::Debug;
 use std::ops::Deref;
 
 pub struct Renderer {
@@ -12,17 +14,21 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn new<D: GlDisplay, P: AsRef<[(gl::types::GLenum, Polygon)]>>(
+    pub fn new<
+        T: Float + Debug + Copy + 'static,
+        D: GlDisplay,
+        P: AsRef<[(gl::types::GLenum, Polygon<T>)]>,
+    >(
         gl_display: &D,
         polygons: P,
     ) -> Self {
         unsafe {
-            let mut polygons: Vec<(gl::types::GLenum, Polygon)> = polygons.as_ref().to_vec();
+            let mut polygons: Vec<(gl::types::GLenum, Polygon<T>)> = polygons.as_ref().to_vec();
             let mut bounds = fit_all_polygons(&mut polygons);
-            bounds.0 = bounds.0 - 0.1;
-            bounds.1 = bounds.1 + 0.1;
-            bounds.2 = bounds.2 - 0.1;
-            bounds.3 = bounds.3 + 0.1;
+            bounds.0 = bounds.0 - T::one();
+            bounds.1 = bounds.1 + T::one();
+            bounds.2 = bounds.2 - T::one();
+            bounds.3 = bounds.3 + T::one();
 
             let gl = crate::gl::Gl::load_with(|symbol| {
                 let symbol = CString::new(symbol).unwrap();
@@ -63,7 +69,12 @@ impl Renderer {
             gl.DeleteShader(vertex_shader);
             gl.DeleteShader(fragment_shader);
 
-            let (left, right, bottom, top) = bounds;
+            let (left, right, bottom, top) = (
+                bounds.0.to_f32().unwrap(),
+                bounds.1.to_f32().unwrap(),
+                bounds.2.to_f32().unwrap(),
+                bounds.3.to_f32().unwrap(),
+            );
 
             let (near, far) = (-1.0, 1.0); // Set -1 and 1 for Ortho2D equivalent
 
