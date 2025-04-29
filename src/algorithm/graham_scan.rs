@@ -15,7 +15,7 @@ pub fn is_right_turn<T: Float + Copy>(p: Vertex<T>, test: Vertex<T>, q: Vertex<T
     let d = b_vec.position[1];
 
     let det = a * d - b * c;
-    // Account for f32 errors using EPSILON (smallest f32 representable number without error)
+
     det >= T::zero()
 }
 
@@ -32,7 +32,7 @@ pub fn is_left_turn<T: Float + Copy>(p: Vertex<T>, test: Vertex<T>, q: Vertex<T>
     let d = b_vec.position[1];
 
     let det = a * d - b * c;
-    // Account for f32 errors using EPSILON (smallest f32 representable number without error)
+
     det <= T::zero()
 }
 
@@ -107,26 +107,12 @@ pub fn graham_scan_by_angle<T: Float + Copy, P: AsRef<[Vertex<T>]>>(
 
     for i in 1..angled.len() {
         let next_vertex = points.as_ref()[angled[i].1];
-        while hull.len() >= 2 {
-            // Exit condition if hull is not found
-            if hull.is_empty() {
-                return None;
-            }
-
-            if is_left_turn(hull[hull.len() - 2], hull[hull.len() - 1], next_vertex) {
-                hull.push(next_vertex);
-                break;
-            } else {
-                hull.pop();
-                if hull.len() < 2 {
-                    // this is a special case, when the first vector inserted creates a left turn,
-                    // the pop will leave the hull at one vertex.
-                    // This also means, that the vertex that caused the pop mus be in the outer hull (potentially)
-                    hull.push(next_vertex);
-                    break;
-                }
-            }
+        while hull.len() >= 2
+            && !is_left_turn(hull[hull.len() - 2], hull[hull.len() - 1], next_vertex)
+        {
+            hull.pop();
         }
+        hull.push(next_vertex);
     }
 
     Some(hull)
@@ -164,42 +150,32 @@ pub fn graham_scan_by_x<T: Float + Copy, P: AsRef<[Vertex<T>]>>(
     let midpoint = points.as_ref()[min_x] * T::from(0.5).unwrap()
         + points.as_ref()[max_x] * T::from(0.5).unwrap();
 
-    let mut x_mapped: Vec<(T, usize)> = indizes
-        .iter()
-        .filter_map(|idx| {
-            if *idx == min_x {
-                None
-            } else {
-                Some((points.as_ref()[*idx].position[0], *idx))
-            }
-        })
-        .collect();
+    #[rustfmt::skip]
+    let mut x_mapped: Vec<(T, usize)> = indizes.iter().filter_map(|idx| {
+            if *idx == min_x { None } else { Some((points.as_ref()[*idx].position[0], *idx)) }
+        }).collect();
 
     x_mapped.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
 
     // Split up in upper and lower half
-    let upper = x_mapped
-        .iter()
-        .filter(|idx| {
+    #[rustfmt::skip]
+    let upper = x_mapped.iter().filter(|idx| {
             normal_upper_lower_separator.cosine(&(points.as_ref()[idx.1] - midpoint)) >= T::zero()
-        })
-        .collect::<Vec<_>>();
+        }).collect::<Vec<_>>();
 
     let tmp = (T::zero(), min_x);
-    let mut lower = x_mapped
-        .iter()
-        .filter(|idx| {
+    #[rustfmt::skip]
+    let mut lower = x_mapped.iter().filter(|idx| {
             normal_upper_lower_separator.cosine(&(points.as_ref()[idx.1] - midpoint)) < T::zero()
-        })
-        .collect::<Vec<_>>();
-    lower.push(&tmp); // Use tmp to avoid borrow checker from rust
+        }).collect::<Vec<_>>();
     lower.reverse();
+    lower.push(&tmp); // Use tmp to avoid borrow checker from rust, push first min_x to recheck final shape
 
     let mut hull = Vec::new();
     hull.push(points.as_ref()[min_x]);
     if !upper.is_empty() {
         hull.push(points.as_ref()[upper[0].1]);
-    } else {
+    } else if !lower.is_empty() {
         hull.push(points.as_ref()[lower[0].1]);
     }
 
@@ -213,26 +189,12 @@ pub fn graham_scan_by_x<T: Float + Copy, P: AsRef<[Vertex<T>]>>(
     for _ in 0..2 {
         for i in 1..slice.len() {
             let next_vertex = points.as_ref()[slice[i].1];
-            while hull.len() >= 2 {
-                // Exit condition if hull is not found
-                if hull.is_empty() {
-                    return None;
-                }
-
-                if is_right_turn(hull[hull.len() - 2], hull[hull.len() - 1], next_vertex) {
-                    hull.push(next_vertex);
-                    break;
-                } else {
-                    hull.pop();
-                    if hull.len() < 2 {
-                        // this is a special case, when the first vector inserted creates a left turn,
-                        // the pop will leave the hull at one vertex.
-                        // This also means, that the vertex that caused the pop mus be in the outer hull (potentially)
-                        hull.push(next_vertex);
-                        break;
-                    }
-                }
+            while hull.len() >= 2
+                && !is_right_turn(hull[hull.len() - 2], hull[hull.len() - 1], next_vertex)
+            {
+                hull.pop();
             }
+            hull.push(next_vertex);
         }
         match iteration {
             Iteration::Upper => {

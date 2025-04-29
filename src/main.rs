@@ -18,11 +18,11 @@ pub mod gl {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let obj_file_manager = ObjFileManager::<f32>::new("grahamScanDifficult.obj");
+    let obj_file_manager = ObjFileManager::<f32>::new("grahamScan.obj");
     let polygon = obj_file_manager.get_polygon(0);
     println!("Polygon: {}", polygon);
 
-    let hull = graham_scan_by_angle(polygon.vertices)
+    let hull = graham_scan_by_x(polygon.vertices)
         .expect("A hull must be present, since there are more than 1 point");
     let polygon_hull = Polygon::new(hull);
     println!("Hull: {}", polygon_hull);
