@@ -43,7 +43,7 @@ pub fn graham_scan_by_angle<T: Float + Copy, P: AsRef<[Vertex<T>]>>(
     let indices: Vec<usize> = points.as_ref().iter().enumerate().map(|(i, _)| i).collect();
 
     // Complex sorting function, to properly use the minimal y value. if multiple equal min_y values exists, use min x
-    let min_y_point = indices.iter().min_by(|idx_1, idx_2| {
+    let min_y_point = *indices.iter().min_by(|idx_1, idx_2| {
         // Copy here, to avoid using unsafe function calls (UB), since position is packed and not properly aligned
         let v1 = points.as_ref()[**idx_1].position;
         let v2 = points.as_ref()[**idx_2].position;
@@ -55,12 +55,8 @@ pub fn graham_scan_by_angle<T: Float + Copy, P: AsRef<[Vertex<T>]>>(
             Ordering::Equal => ord_x,
             _ => ord_y,
         }
-    });
+    })?;
 
-    if min_y_point.is_none() {
-        return None;
-    }
-    let min_y_point = min_y_point.unwrap().clone();
     let x_axis = Vertex {
         position: [T::one(), T::zero(), T::zero()],
         color: [0.0, 0.0, 0.0],
@@ -82,6 +78,7 @@ pub fn graham_scan_by_angle<T: Float + Copy, P: AsRef<[Vertex<T>]>>(
             }
         })
         .collect::<Vec<_>>();
+
     // Sort by angle, if multiple angles are the same, order by magnitude. Note, that larger is more important, meaning it should get sorted first.
     // This also means, that we have to invert the sort order for the magnitude
     angled.sort_by(|v1, v2| {
