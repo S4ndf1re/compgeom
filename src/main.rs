@@ -4,7 +4,9 @@ mod objects;
 
 use std::error::Error;
 
-use crate::algorithm::graham_scan::{graham_scan_by_angle, graham_scan_by_x};
+use crate::algorithm::graham_scan::{
+    graham_scan_by_angle, graham_scan_by_x, graham_scan_vorlesungsfolie,
+};
 use crate::objects::polygon::Polygon;
 use basic_rendering::app::App;
 use basic_rendering::util::window_attributes;
@@ -22,7 +24,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let polygon = obj_file_manager.get_polygon(0);
     println!("Polygon: {}", polygon);
 
-    let hull = graham_scan_by_angle(polygon.vertices)
+    let hull = graham_scan_vorlesungsfolie(&polygon.vertices)
         .expect("A hull must be present, since there are more than 1 point");
     let polygon_hull = Polygon::new(hull);
     println!("Hull: {}", polygon_hull);

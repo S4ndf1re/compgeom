@@ -211,3 +211,68 @@ pub fn graham_scan_by_x<T: Float + Copy, P: AsRef<[Vertex<T>]>>(
     hull.pop();
     Some(hull)
 }
+
+pub fn graham_scan_vorlesungsfolie<T: Float + Copy, P: AsRef<[Vertex<T>]>>(
+    points: P,
+) -> Option<Vec<Vertex<T>>> {
+    if points.as_ref().is_empty() {
+        return None;
+    }
+
+    if points.as_ref().len() <= 2 {
+        return Some(points.as_ref().to_vec());
+    }
+
+    let mut list = points.as_ref().to_vec();
+    list.sort_by(|a, b| {
+        let a_x = a.position[0];
+        let b_x = b.position[0];
+        a_x.partial_cmp(&b_x).unwrap()
+    });
+
+    let mut upper_hull = vec![];
+    let mut lower_hull = vec![];
+
+    upper_hull.push(list[0]);
+    upper_hull.push(list[1]);
+
+    lower_hull.push(list[list.len() - 1]);
+    lower_hull.push(list[list.len() - 2]);
+
+    for i in 2..list.len() {
+        let next_vertex = list[i];
+        while upper_hull.len() >= 2
+            && !is_right_turn(
+                upper_hull[upper_hull.len() - 2],
+                upper_hull[upper_hull.len() - 1],
+                next_vertex,
+            )
+        {
+            upper_hull.pop();
+        }
+        upper_hull.push(next_vertex);
+    }
+
+    for i in (0..list.len() - 2).rev() {
+        let next_vertex = list[i];
+        while lower_hull.len() >= 2
+            && !is_right_turn(
+                lower_hull[lower_hull.len() - 2],
+                lower_hull[lower_hull.len() - 1],
+                next_vertex,
+            )
+        {
+            lower_hull.pop();
+        }
+        lower_hull.push(next_vertex);
+    }
+
+    // The first and last point in the lower hull are also contained within the upper hull
+    if lower_hull.len() >= 2 {
+        lower_hull.remove(0);
+        lower_hull.pop();
+    }
+
+    upper_hull.extend(lower_hull.iter());
+    Some(upper_hull)
+}
