@@ -12,6 +12,7 @@ use basic_rendering::app::App;
 use basic_rendering::util::window_attributes;
 use glutin::config::ConfigTemplateBuilder;
 use glutin_winit::DisplayBuilder;
+use num::BigRational;
 use objects::obj_file_manager::ObjFileManager;
 
 pub mod gl {
@@ -20,6 +21,7 @@ pub mod gl {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    // Load f32 or f64 Points (type info provided by generic, must be any num::Float)
     let obj_file_manager = ObjFileManager::<f64>::new("grahamScanDifficult.obj");
     let polygon = obj_file_manager.get_polygon(0);
     println!("Polygon: {}", polygon);
