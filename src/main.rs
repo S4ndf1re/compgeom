@@ -20,7 +20,7 @@ pub mod gl {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let obj_file_manager = ObjFileManager::<f32>::new("grahamScanDifficult.obj");
+    let obj_file_manager = ObjFileManager::<f64>::new("grahamScanDifficult.obj");
     let polygon = obj_file_manager.get_polygon(0);
     println!("Polygon: {}", polygon);
 
