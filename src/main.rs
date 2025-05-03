@@ -1,3 +1,5 @@
+#![feature(unboxed_closures)]
+
 mod algorithm;
 mod basic_rendering;
 mod objects;
