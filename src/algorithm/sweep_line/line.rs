@@ -67,7 +67,8 @@ where
     pub fn get_t_for_context(&self) -> T {
         let x = self.context.clone().unwrap().borrow().x_pos;
 
-        // x1_1 + t * r_1 = x
+        // x1 + t * (x2 - x1) = (x, y, z)
+        // x1_x + t * r_x = x
         let t = (x - self.x1.x()) / self.direction.x();
         t
     }

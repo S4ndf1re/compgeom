@@ -5,7 +5,6 @@ mod basic_rendering;
 mod objects;
 
 use crate::algorithm::graham_scan::graham_scan::graham_scan_vorlesungsfolie;
-use crate::algorithm::sweep_line::line::Line;
 use crate::algorithm::sweep_line::sweep_line::sweep_line_intersections;
 use crate::basic_rendering::renderer::DrawMode;
 use crate::objects::polygon::Polygon;
