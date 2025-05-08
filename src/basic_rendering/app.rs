@@ -1,5 +1,5 @@
 use crate::basic_rendering::appstate::AppState;
-use crate::basic_rendering::renderer::Renderer;
+use crate::basic_rendering::renderer::{DrawMode, Renderer};
 use crate::basic_rendering::util::{create_gl_context, gl_config_picker, window_attributes};
 use crate::objects::polygon::Polygon;
 use glutin::config::{ConfigTemplateBuilder, GetGlConfig};
@@ -28,6 +28,7 @@ where
     gl_display: GlDisplayCreationState,
     pub exit_state: Result<(), Box<dyn Error>>,
     polygons: Vec<(gl::types::GLenum, Polygon<T>)>,
+    draw_mode: DrawMode,
 }
 
 impl<T> App<T>
@@ -38,6 +39,7 @@ where
         template: ConfigTemplateBuilder,
         display_builder: DisplayBuilder,
         polygons: Vec<(gl::types::GLenum, Polygon<T>)>,
+        draw_mode: DrawMode,
     ) -> Self {
         Self {
             template,
@@ -47,6 +49,7 @@ where
             state: None,
             renderer: None,
             polygons,
+            draw_mode,
         }
     }
 }
@@ -115,8 +118,9 @@ where
         let gl_context = self.gl_context.as_ref().unwrap();
         gl_context.make_current(&gl_surface).unwrap();
 
-        self.renderer
-            .get_or_insert_with(|| Renderer::new(&gl_config.display(), &self.polygons));
+        self.renderer.get_or_insert_with(|| {
+            Renderer::new(&gl_config.display(), self.draw_mode, &self.polygons)
+        });
 
         // Try setting vsync.
         if let Err(res) = gl_surface

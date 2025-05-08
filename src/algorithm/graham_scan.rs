@@ -1,4 +1,4 @@
-use crate::objects::polygon::Vertex;
+use crate::objects::vertex::Vertex;
 use num::Float;
 use std::cmp::Ordering;
 

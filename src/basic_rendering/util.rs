@@ -1,3 +1,4 @@
+use crate::basic_rendering::renderer::DrawMode;
 use crate::gl::Gl;
 use crate::objects::polygon::Polygon;
 use glutin::config::Config;
@@ -97,18 +98,36 @@ pub unsafe fn create_shader(
 }
 
 pub fn fit_all_polygons<T: Float + Copy + Debug>(
+    draw_mode: DrawMode,
     polygons: &mut [(gl::types::GLenum, Polygon<T>)],
 ) -> (T, T, T, T) {
-    let mut bounds: (T, T, T, T) = (T::zero(), T::zero(), T::zero(), T::zero());
-    let mut last_x = T::zero();
+    match draw_mode {
+        DrawMode::FitSideBySide => {
+            let mut bounds: (T, T, T, T) = (T::zero(), T::zero(), T::zero(), T::zero());
+            let mut last_x = T::zero();
 
-    for p in polygons {
-        p.1.shift_to(last_x, T::zero());
-        let p_bounds = p.1.get_bounds();
-        bounds.1 = p_bounds.1;
-        bounds.3 = bounds.3.max(p_bounds.3);
-        last_x = bounds.1;
+            for p in polygons {
+                p.1.shift_to(last_x, T::zero());
+                let p_bounds = p.1.get_bounds();
+                bounds.1 = p_bounds.1;
+                bounds.3 = bounds.3.max(p_bounds.3);
+                last_x = bounds.1;
+            }
+
+            bounds
+        }
+        DrawMode::Overlap => {
+            let mut bounds: (T, T, T, T) = (T::zero(), T::zero(), T::zero(), T::zero());
+
+            for p in polygons {
+                let p_bounds = p.1.get_bounds();
+                bounds.0 = bounds.0.min(p_bounds.0);
+                bounds.1 = bounds.1.max(p_bounds.1);
+                bounds.2 = bounds.2.min(p_bounds.2);
+                bounds.3 = bounds.3.max(p_bounds.3);
+            }
+
+            bounds
+        }
     }
-
-    bounds
 }

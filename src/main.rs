@@ -6,9 +6,8 @@ mod objects;
 
 use std::error::Error;
 
-use crate::algorithm::graham_scan::{
-    graham_scan_by_angle, graham_scan_by_x, graham_scan_vorlesungsfolie,
-};
+use crate::algorithm::graham_scan::graham_scan_vorlesungsfolie;
+use crate::basic_rendering::renderer::DrawMode;
 use crate::objects::polygon::Polygon;
 use basic_rendering::app::App;
 use basic_rendering::util::window_attributes;
@@ -50,6 +49,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             (gl::POINTS, obj_file_manager.get_polygon(0)),
             (gl::LINE_LOOP, polygon_hull),
         ],
+        DrawMode::FitSideBySide,
     );
     event_loop.run_app(&mut app)?;
 

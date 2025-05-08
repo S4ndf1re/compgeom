@@ -1,4 +1,5 @@
-use crate::objects::polygon::{Polygon, Position, Vertex};
+use crate::objects::polygon::Polygon;
+use crate::objects::vertex::{Position, Vertex};
 use gl::types::GLsizei;
 use glutin::display::GlDisplay;
 use num::Float;

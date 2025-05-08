@@ -7,6 +7,12 @@ use std::ffi::CString;
 use std::fmt::Debug;
 use std::ops::Deref;
 
+#[derive(Clone, Copy)]
+pub enum DrawMode {
+    FitSideBySide,
+    Overlap,
+}
+
 pub struct Renderer {
     program: gl::types::GLuint,
     gl: crate::gl::Gl,
@@ -20,11 +26,12 @@ impl Renderer {
         P: AsRef<[(gl::types::GLenum, Polygon<T>)]>,
     >(
         gl_display: &D,
+        draw_mode: DrawMode,
         polygons: P,
     ) -> Self {
         unsafe {
             let mut polygons: Vec<(gl::types::GLenum, Polygon<T>)> = polygons.as_ref().to_vec();
-            let mut bounds = fit_all_polygons(&mut polygons);
+            let mut bounds = fit_all_polygons(draw_mode, &mut polygons);
             bounds.0 = bounds.0 - T::one();
             bounds.1 = bounds.1 + T::one();
             bounds.2 = bounds.2 - T::one();

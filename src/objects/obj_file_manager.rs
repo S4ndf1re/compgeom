@@ -1,4 +1,5 @@
-use crate::objects::polygon::{Polygon, Vertex};
+use crate::objects::polygon::Polygon;
+use crate::objects::vertex::Vertex;
 use num::Float;
 use std::str::FromStr;
 use std::{fmt, fs};
