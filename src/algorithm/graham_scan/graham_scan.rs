@@ -1,10 +1,11 @@
 use crate::objects::vertex::Vertex;
 use num::Float;
 use std::cmp::Ordering;
+use std::fmt::Debug;
 
 /// Test if p->test->q is a right turn (true)
 /// NOTE: this function only operates on 2d at the moment
-pub fn is_right_turn<T: Float + Copy>(p: Vertex<T>, test: Vertex<T>, q: Vertex<T>) -> bool {
+pub fn is_right_turn<T: Float + Copy + Debug>(p: Vertex<T>, test: Vertex<T>, q: Vertex<T>) -> bool {
     let direction_vec_line = q - p;
     let line_normal = direction_vec_line.normal();
 
@@ -20,7 +21,7 @@ pub fn is_right_turn<T: Float + Copy>(p: Vertex<T>, test: Vertex<T>, q: Vertex<T
 
 /// Test if p->test->q is a right turn (true)
 /// NOTE: this function only operates on 2d at the moment
-pub fn is_left_turn<T: Float + Copy>(p: Vertex<T>, test: Vertex<T>, q: Vertex<T>) -> bool {
+pub fn is_left_turn<T: Float + Copy + Debug>(p: Vertex<T>, test: Vertex<T>, q: Vertex<T>) -> bool {
     let direction_vec_line = q - p;
     let line_normal = direction_vec_line.normal();
 
@@ -35,7 +36,7 @@ pub fn is_left_turn<T: Float + Copy>(p: Vertex<T>, test: Vertex<T>, q: Vertex<T>
 }
 
 /// Compute the convex hull using graham scan, sorting by angle (not x-coordinate)
-pub fn graham_scan_by_angle<T: Float + Copy, P: AsRef<[Vertex<T>]>>(
+pub fn graham_scan_by_angle<T: Float + Copy + Debug, P: AsRef<[Vertex<T>]>>(
     points: P,
 ) -> Option<Vec<Vertex<T>>> {
     let indices: Vec<usize> = points.as_ref().iter().enumerate().map(|(i, _)| i).collect();
@@ -118,7 +119,7 @@ enum Iteration {
     Lower,
 }
 
-pub fn graham_scan_by_x<T: Float + Copy, P: AsRef<[Vertex<T>]>>(
+pub fn graham_scan_by_x<T: Float + Copy + Debug, P: AsRef<[Vertex<T>]>>(
     points: P,
 ) -> Option<Vec<Vertex<T>>> {
     let indizes: Vec<usize> = points.as_ref().iter().enumerate().map(|(i, _)| i).collect();
@@ -208,7 +209,7 @@ pub fn graham_scan_by_x<T: Float + Copy, P: AsRef<[Vertex<T>]>>(
     Some(hull)
 }
 
-pub fn graham_scan_vorlesungsfolie<T: Float + Copy, P: AsRef<[Vertex<T>]>>(
+pub fn graham_scan_vorlesungsfolie<T: Float + Copy + Debug, P: AsRef<[Vertex<T>]>>(
     points: P,
 ) -> Option<Vec<Vertex<T>>> {
     if points.as_ref().is_empty() {

@@ -38,12 +38,10 @@ fn load_polygon_with_hull<T: Float + Copy + FromStr<Err: Debug> + Debug>(
 }
 fn main() -> Result<(), Box<dyn Error>> {
     // Load f32 or f64 Points (type info provided by generic, must be any num::Float)
-    let (mut quad, mut quad_hull) =
-        load_polygon_with_hull::<OrderedFloat<f32>>("assets/test/quad.obj");
+    let (mut quad, mut quad_hull) = load_polygon_with_hull::<OrderedFloat<f32>>("assets/quad.obj");
     quad.set_color([1.0, 0.0, 0.0, 1.0]);
 
-    let (mut star, mut star_hull) =
-        load_polygon_with_hull::<OrderedFloat<f32>>("assets/test/star2.obj");
+    let (mut star, mut star_hull) = load_polygon_with_hull::<OrderedFloat<f32>>("assets/star2.obj");
     star.set_color([0.0, 1.0, 0.0, 1.0]);
 
     let mut lines = vec![];

@@ -174,7 +174,7 @@ where
 
 impl<T> From<(Vertex<T>, Vertex<T>)> for Line<T>
 where
-    T: Copy + Float,
+    T: Copy + Float + Debug,
 {
     fn from(value: (Vertex<T>, Vertex<T>)) -> Self {
         Line::new(0, 0, value.0, value.1)

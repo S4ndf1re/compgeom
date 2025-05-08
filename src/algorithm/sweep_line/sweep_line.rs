@@ -10,7 +10,7 @@ use std::fmt::Debug;
 use std::rc::Rc;
 
 /// Compute the possible line intersection of line1 and line2. When intersection is found and was not previously computed, add intersection to queue
-pub fn is_intersecting_trigger_event<T: Float + Ord + Copy>(
+pub fn is_intersecting_trigger_event<T: Float + Ord + Copy + Debug>(
     intersecting_store: &mut HashSet<(usize, usize)>,
     queue: &mut EventStructure<T>,
     line1: &Line<T>,
@@ -21,10 +21,6 @@ pub fn is_intersecting_trigger_event<T: Float + Ord + Copy>(
     }
 
     if let Some(vert) = line1.intersects(line2) {
-        println!(
-            "Triggering intersection between {} and {}",
-            line1.id, line2.id
-        );
         queue.add_event(
             vert.x(),
             SweepLineEvent::Intersection(line1.clone(), line2.clone(), vert),
@@ -74,15 +70,15 @@ pub fn sweep_line_intersections<T: Float + Ord + Debug, L: AsRef<[Line<T>]>>(
 
         match event.1 {
             SweepLineEvent::LineStart(line) => {
-                println!("Line {} started", line.id);
+                println!("Start {:?}", line);
                 if !line.is_vertical() {
                     sss.insert_line(line.clone());
                     if let Some(pred) = sss.pred(&line) {
                         is_intersecting_trigger_event(
                             &mut already_intersected,
                             &mut queue,
-                            &line,
                             &pred.cell.borrow_mut(),
+                            &line,
                         );
                     }
 
@@ -106,7 +102,7 @@ pub fn sweep_line_intersections<T: Float + Ord + Debug, L: AsRef<[Line<T>]>>(
                 }
             }
             SweepLineEvent::LineEnd(line) => {
-                println!("Line {} ended", line.id);
+                println!("End {:?}", line);
                 if !line.is_vertical() {
                     let pred = sss.pred(&line);
                     let succ = sss.succ(&line);
@@ -123,16 +119,16 @@ pub fn sweep_line_intersections<T: Float + Ord + Debug, L: AsRef<[Line<T>]>>(
                 }
             }
             SweepLineEvent::Intersection(line_a, line_b, vert) => {
+                println!("Intersection {:?}, {:?}", line_a, line_b);
                 context.borrow_mut().is_intersection = true;
                 context.borrow_mut().line_id1 = line_a.id;
                 context.borrow_mut().line_id2 = line_b.id;
-                println!("intersection between {} and {}", line_a.id, line_b.id);
                 intersections.push((vert, line_a.clone(), line_b.clone()));
 
                 if !line_a.is_vertical() && !line_b.is_vertical() {
                     // Only exchange, if a line segment is starting. In this case, the lines are already ordered correctly
-                    if line_a.get_t_for_context() > T::zero()
-                        && line_b.get_t_for_context() > T::zero()
+                    if line_a.get_t_for_context() > T::epsilon()
+                        && line_b.get_t_for_context() > T::epsilon()
                     {
                         sss.exchange(&context, &line_a, &line_b);
                     }
@@ -143,8 +139,8 @@ pub fn sweep_line_intersections<T: Float + Ord + Debug, L: AsRef<[Line<T>]>>(
                         is_intersecting_trigger_event(
                             &mut already_intersected,
                             &mut queue,
-                            &line_b,
                             &pred.cell.borrow(),
+                            &line_b,
                         );
                     }
 
@@ -157,23 +153,25 @@ pub fn sweep_line_intersections<T: Float + Ord + Debug, L: AsRef<[Line<T>]>>(
                         );
                     }
 
-                    if let Some(pred) = sss.pred(&line_a) {
-                        is_intersecting_trigger_event(
-                            &mut already_intersected,
-                            &mut queue,
-                            &line_a,
-                            &pred.cell.borrow(),
-                        );
-                    }
-
-                    if let Some(succ) = sss.succ(&line_b) {
-                        is_intersecting_trigger_event(
-                            &mut already_intersected,
-                            &mut queue,
-                            &line_b,
-                            &succ.cell.borrow(),
-                        );
-                    }
+                    // if let Some(pred) = sss.pred(&line_a) {
+                    //     is_intersecting_trigger_event(
+                    //         &mut already_intersected,
+                    //         &mut queue,
+                    //         &pred.cell.borrow(),
+                    //         &line_a,
+                    //     );
+                    // }
+                    //
+                    // if let Some(succ) = sss.succ(&line_b) {
+                    //     is_intersecting_trigger_event(
+                    //         &mut already_intersected,
+                    //         &mut queue,
+                    //         &line_b,
+                    //         &succ.cell.borrow(),
+                    //     );
+                    // }
+                } else {
+                    println!("LIne is vertical");
                 }
             }
         }

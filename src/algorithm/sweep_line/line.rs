@@ -3,6 +3,7 @@ use crate::objects::vertex::Vertex;
 use num::Float;
 use std::cell::RefCell;
 use std::cmp::Ordering;
+use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
 
 type LineContext<T> = Rc<RefCell<SweepLineContext<T>>>;
@@ -29,7 +30,7 @@ fn less_than<T: Float>(a: T, b: T, eps: T) -> bool {
 
 impl<T> Line<T>
 where
-    T: Float,
+    T: Float + Debug,
 {
     pub fn new(id: usize, polygon_id: usize, mut x1: Vertex<T>, mut x2: Vertex<T>) -> Self {
         let mut x1_corrected = x1;
@@ -68,6 +69,7 @@ where
 
         // x1_1 + t * r_1 = x
         let t = (x - self.x1.x()) / self.direction.x();
+        println!("T: {:?}", t);
         t
     }
 
@@ -112,7 +114,7 @@ where
     }
 
     pub fn is_vertical(&self) -> bool {
-        self.direction.x() < T::epsilon() && self.direction.y() > T::epsilon()
+        self.direction.x() < T::epsilon() && self.direction.y().abs() > T::epsilon()
     }
 }
 
@@ -138,7 +140,7 @@ where
 
 impl<T> Ord for Line<T>
 where
-    T: Float,
+    T: Float + Debug,
 {
     fn cmp(&self, other: &Self) -> Ordering {
         let local_context = self.context.clone().unwrap();
@@ -195,5 +197,14 @@ where
             .set_order(self.id, other.id, ordering);
 
         ordering
+    }
+}
+
+impl<T> Debug for Line<T>
+where
+    T: Debug + Float,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.id)
     }
 }

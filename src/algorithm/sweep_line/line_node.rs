@@ -2,20 +2,21 @@ use crate::algorithm::sweep_line::line::Line;
 use crate::objects::vertex::Vertex;
 use num::Float;
 use std::cell::RefCell;
+use std::fmt::Debug;
 use std::ops::Deref;
 use std::rc::Rc;
 
 #[derive(Ord, PartialOrd, PartialEq, Eq, Clone)]
 pub struct LineNode<T>
 where
-    T: Float,
+    T: Float + Debug,
 {
     pub cell: Rc<RefCell<Line<T>>>,
 }
 
 impl<T> LineNode<T>
 where
-    T: Float,
+    T: Float + Debug,
 {
     pub fn new(line: Line<T>) -> Self {
         Self {

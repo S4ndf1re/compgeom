@@ -10,7 +10,7 @@ use std::ops::Deref;
 
 pub struct SweepLineStateStructure<T>
 where
-    T: Float,
+    T: Float + Debug,
 {
     container: BTreeSet<LineNode<T>>,
 }
@@ -39,8 +39,6 @@ where
         line1: &Line<T>,
         line2: &Line<T>,
     ) {
-        println!("Exchanging elements");
-        self.print_in_order();
         let line1_node = self.container.get(&LineNode::new(line1.clone())).unwrap();
         let line2_node = self.container.get(&LineNode::new(line2.clone())).unwrap();
 
@@ -73,16 +71,8 @@ where
     pub fn print_in_order(&self) {
         for line in self.container.iter() {
             let line = line.cell.borrow().deref().clone();
-            print!(
-                "({:?}, {:?}) -> ({:?}, {:?}) , ",
-                line.x1.x(),
-                line.x1.y(),
-                line.x2.x(),
-                line.x2.y()
-            );
+            print!("{:?} , ", line);
         }
-        println!();
-        println!();
         println!();
     }
 

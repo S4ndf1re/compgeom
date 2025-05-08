@@ -3,11 +3,12 @@ use crate::objects::vertex::Vertex;
 use num::Float;
 use std::cmp::Reverse;
 use std::collections::BinaryHeap;
+use std::fmt::Debug;
 
 #[derive(Ord, PartialOrd, PartialEq, Eq)]
 pub enum SweepLineEvent<T>
 where
-    T: Float,
+    T: Float + Debug,
 {
     LineStart(Line<T>),
     Intersection(Line<T>, Line<T>, Vertex<T>),
@@ -16,7 +17,7 @@ where
 
 pub struct EventStructure<T>
 where
-    T: Float,
+    T: Float + Debug,
 {
     // Construct min heap
     queue: BinaryHeap<Reverse<(T, SweepLineEvent<T>)>>,
@@ -24,7 +25,7 @@ where
 
 impl<T> EventStructure<T>
 where
-    T: Float + Ord + Copy,
+    T: Float + Ord + Copy + Debug,
 {
     pub fn new() -> Self {
         Self {
