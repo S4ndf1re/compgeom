@@ -8,6 +8,7 @@ use crate::algorithm::graham_scan::graham_scan::graham_scan_vorlesungsfolie;
 use crate::algorithm::sweep_line::sweep_line::sweep_line_intersections;
 use crate::basic_rendering::renderer::DrawMode;
 use crate::objects::polygon::Polygon;
+use crate::objects::vertex::Vertex;
 use basic_rendering::app::App;
 use basic_rendering::util::window_attributes;
 use glutin::config::ConfigTemplateBuilder;
@@ -15,6 +16,7 @@ use glutin_winit::DisplayBuilder;
 use num::Float;
 use objects::obj_file_manager::ObjFileManager;
 use ordered_float::OrderedFloat;
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fmt::Debug;
 use std::str::FromStr;
@@ -37,10 +39,10 @@ fn load_polygon_with_hull<T: Float + Copy + FromStr<Err: Debug> + Debug>(
 }
 fn main() -> Result<(), Box<dyn Error>> {
     // Load f32 or f64 Points (type info provided by generic, must be any num::Float)
-    let (mut quad, mut quad_hull) = load_polygon_with_hull::<OrderedFloat<f32>>("assets/quad.obj");
+    let (mut quad, _) = load_polygon_with_hull::<OrderedFloat<f32>>("assets/quad.obj");
     quad.set_color([1.0, 0.0, 0.0, 1.0]);
 
-    let (mut star, mut star_hull) = load_polygon_with_hull::<OrderedFloat<f32>>("assets/star2.obj");
+    let (mut star, _) = load_polygon_with_hull::<OrderedFloat<f32>>("assets/star2.obj");
     star.set_color([0.0, 1.0, 0.0, 1.0]);
 
     let mut lines = vec![];
@@ -55,12 +57,26 @@ fn main() -> Result<(), Box<dyn Error>> {
         .into_iter()
         .map(|v| v.0)
         .collect::<Vec<_>>();
-    intersections.extend(star.unit(&quad));
+    let mut intersected_set = HashSet::<(OrderedFloat<f32>, OrderedFloat<f32>)>::new();
+    for i in &intersections {
+        intersected_set.insert((i.x(), i.y()));
+    }
+
     println!("Found {} intersections", intersections.len());
-    let mut poly_intersections = Polygon::new(intersections.clone());
+    intersections.extend(star.unit(&quad, &mut intersected_set));
+    let mut poly_intersections = Polygon::new(
+        intersected_set
+            .into_iter()
+            .map(|p| Vertex {
+                position: [p.0, p.1, OrderedFloat(0.0)],
+                color: [0.0, 0.0, 0.0, 0.0],
+            })
+            .collect(),
+    );
     poly_intersections.set_color([1.0, 1.0, 1.0, 1.0]);
 
-    let mut poly_fill = Polygon::new(graham_scan_vorlesungsfolie(intersections).unwrap());
+    let mut poly_fill =
+        Polygon::new(graham_scan_vorlesungsfolie(poly_intersections.vertices.clone()).unwrap());
     poly_fill.set_color([1.0, 1.0, 1.0, 0.3]);
 
     let event_loop = winit::event_loop::EventLoop::new().unwrap();

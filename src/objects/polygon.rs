@@ -1,6 +1,7 @@
 use crate::algorithm::sweep_line::line::Line;
 use crate::objects::vertex::{Color, Vertex};
 use num::Float;
+use std::collections::HashSet;
 use std::fmt::{Debug, Display, Formatter};
 use std::hash::Hash;
 
@@ -106,18 +107,23 @@ where
         lines.iter().all(|l| l.point_on_normal_side(point))
     }
 
-    pub fn unit(&self, other: &Self) -> Vec<Vertex<T>> {
+    pub fn unit(&self, other: &Self, already_intersected: &mut HashSet<(T, T)>) -> Vec<Vertex<T>>
+    where
+        T: Float,
+    {
         let mut result = vec![];
 
         for p in other.vertices.iter() {
-            if self.is_point_inside(p) {
+            if self.is_point_inside(p) && !already_intersected.contains(&(p.x(), p.y())) {
                 result.push(*p);
+                already_intersected.insert((p.x(), p.y()));
             }
         }
 
         for p in self.vertices.iter() {
-            if other.is_point_inside(p) {
+            if other.is_point_inside(p) && !already_intersected.contains(&(p.x(), p.y())) {
                 result.push(*p);
+                already_intersected.insert((p.x(), p.y()));
             }
         }
 
