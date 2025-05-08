@@ -41,7 +41,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let (mut quad, mut quad_hull) = load_polygon_with_hull::<OrderedFloat<f32>>("assets/quad.obj");
     quad.set_color([1.0, 0.0, 0.0, 1.0]);
 
-    let (mut star, mut star_hull) = load_polygon_with_hull::<OrderedFloat<f32>>("assets/star.obj");
+    let (mut star, mut star_hull) = load_polygon_with_hull::<OrderedFloat<f32>>("assets/star2.obj");
     star.set_color([0.0, 1.0, 0.0, 1.0]);
 
     let mut lines = vec![];
@@ -56,14 +56,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         .into_iter()
         .map(|v| v.0)
         .collect::<Vec<_>>();
-    // intersections.extend(star.unit(&quad));
+    intersections.extend(star.unit(&quad));
     println!("Found {} intersections", intersections.len());
     let mut poly_intersections = Polygon::new(intersections.clone());
     poly_intersections.set_color([1.0, 1.0, 1.0, 1.0]);
 
     let mut poly_fill = Polygon::new(graham_scan_vorlesungsfolie(intersections).unwrap());
-    // poly_fill.push_back(poly_fill.get_center());
-    // poly_fill.insert_front(poly_fill.get_center());
     poly_fill.set_color([1.0, 1.0, 1.0, 0.3]);
 
     let event_loop = winit::event_loop::EventLoop::new().unwrap();
@@ -80,7 +78,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         template,
         display_builder,
         vec![
-            // (gl::TRIANGLE_FAN, poly_fill),
+            (gl::TRIANGLE_FAN, poly_fill),
             (gl::LINE_LOOP, star.clone()),
             (gl::LINE_LOOP, quad.clone()),
             (gl::POINTS, quad),

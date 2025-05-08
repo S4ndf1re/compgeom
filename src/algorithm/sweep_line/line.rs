@@ -69,7 +69,6 @@ where
 
         // x1_1 + t * r_1 = x
         let t = (x - self.x1.x()) / self.direction.x();
-        println!("T: {:?}", t);
         t
     }
 
@@ -89,9 +88,9 @@ where
 
     /// Test for intersection of two line segments
     pub fn intersects(&self, other: &Self) -> Option<Vertex<T>> {
-        // if self.polygon_id == other.polygon_id {
-        //     return None;
-        // }
+        if self.polygon_id == other.polygon_id {
+            return None;
+        }
 
         let s1 = self.x2 - self.x1;
         let s2 = other.x2 - other.x1;
