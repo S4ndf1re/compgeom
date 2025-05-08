@@ -39,7 +39,7 @@ where
         let x = self.context.borrow().x_pos;
 
         // x1_1 + t * r_1 = x
-        let t = (x - self.x1.position[0]) / self.direction.position[0];
+        let t = (x - self.x1.x()) / self.direction.x();
 
         // validate with t being in [0; 1]
         if t < T::zero() - T::epsilon() || t > T::one() + T::epsilon() {
@@ -47,7 +47,7 @@ where
         }
 
         let p = self.f(t);
-        Some(p.position[1])
+        Some(p.y())
     }
 
     pub fn f(&self, t: T) -> Vertex<T> {

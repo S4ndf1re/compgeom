@@ -47,11 +47,11 @@ pub fn sweep_line_intersections<T: Float + Ord, L: AsRef<[Line<T>]>>(
 
     lines.iter().for_each(|line| {
         queue.add_event(
-            line.cell.borrow().x1.position[0],
+            line.cell.borrow().x1.x(),
             SweepLineEvent::LineStart(line.clone()),
         );
         queue.add_event(
-            line.cell.borrow().x2.position[0],
+            line.cell.borrow().x2.x(),
             SweepLineEvent::LineEnd(line.clone()),
         );
     });

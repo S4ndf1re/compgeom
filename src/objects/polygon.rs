@@ -30,10 +30,10 @@ where
 
         for v in &self.vertices {
             bounds = (
-                bounds.0.min(v.position[0]),
-                bounds.1.max(v.position[0]),
-                bounds.2.min(v.position[1]),
-                bounds.3.max(v.position[1]),
+                bounds.0.min(v.x()),
+                bounds.1.max(v.x()),
+                bounds.2.min(v.y()),
+                bounds.3.max(v.y()),
             );
         }
 
@@ -48,8 +48,8 @@ where
         let y_diff = y - bounds.2;
 
         for v in &mut self.vertices {
-            v.position[0] = v.position[0] + x_diff;
-            v.position[1] = v.position[1] + y_diff;
+            v.set_x(v.x() + x_diff);
+            v.set_y(v.y() + y_diff);
         }
     }
 
@@ -67,9 +67,9 @@ where
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "Polygon( verticies: \n")?;
         Ok(for v in &self.vertices {
-            let x = v.position[0];
-            let y = v.position[1];
-            let z = v.position[1];
+            let x = v.x();
+            let y = v.y();
+            let z = v.z();
             write!(f, "\tV({:.}, {:.}, {:.})", x, y, z)?
         })
     }

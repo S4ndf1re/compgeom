@@ -32,9 +32,9 @@ where
     pub fn to_other<O: Float + Copy + Debug>(&self) -> Vertex<O> {
         Vertex {
             position: [
-                cast(self.position[0]).unwrap(),
-                cast(self.position[1]).unwrap(),
-                cast(self.position[2]).unwrap(),
+                cast(self.x()).unwrap(),
+                cast(self.y()).unwrap(),
+                cast(self.z()).unwrap(),
             ],
             color: self.color,
         }
@@ -51,18 +51,18 @@ where
     ) -> (T, Vertex<T>) {
         let r = x2 - x1;
         let normal = Vertex {
-            position: [-r.position[1], r.position[0], T::zero()],
+            position: [-r.y(), r.x(), T::zero()],
             color: [0.0, 0.0, 0.0],
         };
 
-        let s1 = self.position[0];
-        let s2 = self.position[1];
+        let s1 = self.x();
+        let s2 = self.y();
 
-        let r1 = r.position[0];
-        let r2 = r.position[1];
+        let r1 = r.x();
+        let r2 = r.y();
 
-        let x1_1 = x1.position[0];
-        let x1_2 = x1.position[1];
+        let x1_1 = x1.x();
+        let x1_2 = x1.y();
 
         // normal . (self - l(t)) == 1
         // r = x2-x1
@@ -104,6 +104,13 @@ where
     pub fn set_z(&mut self, z: T) {
         self.position[2] = z;
     }
+
+    pub fn normal(&self) -> Self {
+        Vertex {
+            position: [-self.y(), self.x(), T::zero()],
+            color: [0.0, 0.0, 0.0],
+        }
+    }
 }
 
 impl<T> Add for Vertex<T>
@@ -114,11 +121,7 @@ where
 
     fn add(self, rhs: Self) -> Self::Output {
         Vertex {
-            position: [
-                self.position[0] + rhs.position[0],
-                self.position[1] + rhs.position[1],
-                self.position[2] + rhs.position[2],
-            ],
+            position: [self.x() + rhs.x(), self.y() + rhs.y(), self.z() + rhs.z()],
             color: self.color,
         }
     }
@@ -132,11 +135,7 @@ where
 
     fn sub(self, rhs: Self) -> Self::Output {
         Vertex {
-            position: [
-                self.position[0] - rhs.position[0],
-                self.position[1] - rhs.position[1],
-                self.position[2] - rhs.position[2],
-            ],
+            position: [self.x() - rhs.x(), self.y() - rhs.y(), self.z() - rhs.z()],
             color: self.color,
         }
     }
@@ -149,9 +148,7 @@ where
     type Output = T;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        self.position[0] * rhs.position[0]
-            + self.position[1] * rhs.position[1]
-            + self.position[2] * rhs.position[2]
+        self.x() * rhs.x() + self.y() * rhs.y() + self.z() * rhs.z()
     }
 }
 
@@ -162,11 +159,7 @@ where
     type Output = Vertex<T>;
     fn mul(self, rhs: T) -> Self::Output {
         Vertex {
-            position: [
-                self.position[0] * rhs,
-                self.position[1] * rhs,
-                self.position[2] * rhs,
-            ],
+            position: [self.x() * rhs, self.y() * rhs, self.z() * rhs],
             color: self.color,
         }
     }

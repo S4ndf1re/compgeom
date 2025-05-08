@@ -6,14 +6,7 @@ use std::cmp::Ordering;
 /// NOTE: this function only operates on 2d at the moment
 pub fn is_right_turn<T: Float + Copy>(p: Vertex<T>, test: Vertex<T>, q: Vertex<T>) -> bool {
     let direction_vec_line = q - p;
-    let line_normal = Vertex {
-        position: [
-            -direction_vec_line.position[1],
-            direction_vec_line.position[0],
-            T::zero(),
-        ],
-        color: [0.0, 0.0, 0.0],
-    };
+    let line_normal = direction_vec_line.normal();
 
     let (_, p_min_dist) = test.point_on_line_with_min_distance_to_self_clamped_0_1_2d(p, q);
     let directional_test = test - p_min_dist;
@@ -28,14 +21,7 @@ pub fn is_right_turn<T: Float + Copy>(p: Vertex<T>, test: Vertex<T>, q: Vertex<T
 /// NOTE: this function only operates on 2d at the moment
 pub fn is_left_turn<T: Float + Copy>(p: Vertex<T>, test: Vertex<T>, q: Vertex<T>) -> bool {
     let direction_vec_line = q - p;
-    let line_normal = Vertex {
-        position: [
-            -direction_vec_line.position[1],
-            direction_vec_line.position[0],
-            T::zero(),
-        ],
-        color: [0.0, 0.0, 0.0],
-    };
+    let line_normal = direction_vec_line.normal();
 
     let (_, p_min_dist) = test.point_on_line_with_min_distance_to_self_clamped_0_1_2d(p, q);
     let directional_test = test - p_min_dist;
@@ -136,30 +122,28 @@ pub fn graham_scan_by_x<T: Float + Copy, P: AsRef<[Vertex<T>]>>(
     let indizes: Vec<usize> = points.as_ref().iter().enumerate().map(|(i, _)| i).collect();
 
     let min_x = *indizes.iter().min_by(|p1, p2| {
-        let x1 = points.as_ref()[**p1].position[0];
-        let x2 = points.as_ref()[**p2].position[0];
+        let x1 = points.as_ref()[**p1].x();
+        let x2 = points.as_ref()[**p2].x();
 
         x1.partial_cmp(&x2).unwrap()
     })?;
 
     let max_x = *indizes.iter().max_by(|p1, p2| {
-        let x1 = points.as_ref()[**p1].position[0];
-        let x2 = points.as_ref()[**p2].position[0];
+        let x1 = points.as_ref()[**p1].x();
+        let x2 = points.as_ref()[**p2].x();
 
         x1.partial_cmp(&x2).unwrap()
     })?;
 
     let diff = points.as_ref()[max_x] - points.as_ref()[min_x];
-    let normal_upper_lower_separator = Vertex {
-        position: [-diff.position[1], diff.position[0], T::zero()],
-        color: [0.0, 0.0, 0.0],
-    };
+    let normal_upper_lower_separator = diff.normal();
+
     let midpoint = points.as_ref()[min_x] * T::from(0.5).unwrap()
         + points.as_ref()[max_x] * T::from(0.5).unwrap();
 
     #[rustfmt::skip]
     let mut x_mapped: Vec<(T, usize)> = indizes.iter().filter_map(|idx| {
-            if *idx == min_x { None } else { Some((points.as_ref()[*idx].position[0], *idx)) }
+            if *idx == min_x { None } else { Some((points.as_ref()[*idx].x(), *idx)) }
         }).collect();
 
     x_mapped.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
@@ -235,8 +219,8 @@ pub fn graham_scan_vorlesungsfolie<T: Float + Copy, P: AsRef<[Vertex<T>]>>(
 
     let mut list = points.as_ref().to_vec();
     list.sort_by(|a, b| {
-        let a_x = a.position[0];
-        let b_x = b.position[0];
+        let a_x = a.x();
+        let b_x = b.x();
         a_x.partial_cmp(&b_x).unwrap()
     });
 
