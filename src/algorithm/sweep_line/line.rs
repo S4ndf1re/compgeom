@@ -5,57 +5,61 @@ use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::rc::Rc;
 
+type LineContext<T> = Rc<RefCell<SweepLineContext<T>>>;
+
 #[derive(Clone)]
 pub struct Line<T: Copy> {
     pub id: usize,
+    pub polygon_id: usize,
     pub x1: Vertex<T>,
     pub x2: Vertex<T>,
     pub direction: Vertex<T>,
-    pub context: Rc<RefCell<SweepLineContext<T>>>,
+    pub context: Option<LineContext<T>>,
 }
 
 impl<T> Line<T>
 where
     T: Float,
 {
-    pub fn new(
-        id: usize,
-        x1: Vertex<T>,
-        x2: Vertex<T>,
-        context: Rc<RefCell<SweepLineContext<T>>>,
-    ) -> Self {
+    pub fn new(id: usize, polygon_id: usize, x1: Vertex<T>, x2: Vertex<T>) -> Self {
         Self {
             id,
+            polygon_id,
             x1,
             x2,
             direction: x2 - x1,
-            context,
+            context: None,
         }
+    }
+
+    pub fn infuse_context(&mut self, context: LineContext<T>) {
+        self.context = Some(context);
     }
 
     /// For the context, that represents the current position of a line, compute the y-value if x is contained in the line itself
     /// If x is outside the line interval, return None
-    pub fn get_y_for_context(&self) -> Option<T> {
-        let x = self.context.borrow().x_pos;
+    pub fn get_y_for_context(&self) -> T {
+        let p = self.f(self.get_t_for_context());
+        p.y()
+    }
+
+    pub fn get_t_for_context(&self) -> T {
+        let x = self.context.clone().unwrap().borrow().x_pos;
 
         // x1_1 + t * r_1 = x
-        let t = (x - self.x1.x()) / self.direction.x();
-
-        // validate with t being in [0; 1]
-        if t < T::zero() - T::epsilon() || t > T::one() + T::epsilon() {
-            return None;
-        }
-
-        let p = self.f(t);
-        Some(p.y())
+        (x - self.x1.x()) / self.direction.x()
     }
 
     pub fn f(&self, t: T) -> Vertex<T> {
         self.x1 * (T::one() - t) + self.x2 * t
     }
 
-    /// Test for intersection of two line segements
+    /// Test for intersection of two line segments
     pub fn intersects(&self, other: &Self) -> Option<Vertex<T>> {
+        if self.polygon_id == other.polygon_id {
+            return None;
+        }
+
         let s1 = self.x2 - self.x1;
         let s2 = other.x2 - other.x1;
 
@@ -88,17 +92,6 @@ where
     T: Float,
 {
     fn eq(&self, other: &Self) -> bool {
-        // let y = self.get_y_for_context();
-        // if y.is_none() {
-        //     return false;
-        // }
-        //
-        // let y_other = other.get_y_for_context();
-        // if y_other.is_none() {
-        //     return false;
-        // }
-        //
-        // y.unwrap() == y_other.unwrap()
         self.id == other.id
     }
 }
@@ -108,17 +101,7 @@ where
     T: Float,
 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        let y_self = self.get_y_for_context();
-        let y_other = other.get_y_for_context();
-
-        if y_self.is_none() {
-            return None;
-        }
-        if y_other.is_none() {
-            return None;
-        }
-
-        y_self.unwrap().partial_cmp(&y_other.unwrap())
+        self.id.partial_cmp(&other.id)
     }
 }
 
@@ -127,16 +110,49 @@ where
     T: Float,
 {
     fn cmp(&self, other: &Self) -> Ordering {
+        if self.id == other.id {
+            return Ordering::Equal;
+        }
+
+        if let Some(order) = self
+            .context
+            .clone()
+            .unwrap()
+            .borrow()
+            .get_order(&self.id, &other.id)
+        {
+            if order != Ordering::Equal {
+                return order;
+            }
+        }
+
         let y_self = self.get_y_for_context();
         let y_other = other.get_y_for_context();
 
-        if y_self.is_none() {
-            return Ordering::Equal;
-        }
-        if y_other.is_none() {
-            return Ordering::Equal;
-        }
+        let ordering = y_self.partial_cmp(&y_other).unwrap();
+        // In case both x and y are equal, determine the general direction. If this is also equal, the lines are collinear, and the length is important
+        let ordering = if ordering == Ordering::Equal {
+            let dir1 = self.x2 - self.x1;
+            let dir2 = other.x2 - other.x1;
 
-        y_self.unwrap().partial_cmp(&y_other.unwrap()).unwrap()
+            let det = dir1.x() * dir2.y() - dir1.y() * dir2.x();
+            if det > T::zero() {
+                Ordering::Less
+            } else if det < T::zero() {
+                Ordering::Greater
+            } else {
+                Ordering::Equal
+            }
+        } else {
+            ordering
+        };
+
+        self.context
+            .clone()
+            .unwrap()
+            .borrow_mut()
+            .set_order(self.id, other.id, ordering);
+
+        ordering
     }
 }

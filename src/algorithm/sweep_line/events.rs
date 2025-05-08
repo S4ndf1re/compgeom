@@ -1,4 +1,4 @@
-use crate::algorithm::sweep_line::line_node::LineNode;
+use crate::algorithm::sweep_line::line::Line;
 use crate::objects::vertex::Vertex;
 use num::Float;
 use std::cmp::Reverse;
@@ -9,9 +9,9 @@ pub enum SweepLineEvent<T>
 where
     T: Float,
 {
-    LineStart(LineNode<T>),
-    LineEnd(LineNode<T>),
-    Intersection(LineNode<T>, LineNode<T>, Vertex<T>),
+    Intersection(Line<T>, Line<T>, Vertex<T>),
+    LineEnd(Line<T>),
+    LineStart(Line<T>),
 }
 
 pub struct EventStructure<T>

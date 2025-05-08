@@ -1,5 +1,8 @@
+use crate::algorithm::sweep_line::context::SweepLineContext;
+use crate::algorithm::sweep_line::line::Line;
 use crate::algorithm::sweep_line::line_node::LineNode;
 use num::Float;
+use std::cell::RefCell;
 use std::collections::{BTreeSet, Bound};
 
 pub struct SweepLineStateStructure<T>
@@ -19,36 +22,57 @@ where
         }
     }
 
-    pub fn insert_line(&mut self, line: LineNode<T>) {
-        self.container.insert(line);
+    pub fn insert_line(&mut self, line: Line<T>) {
+        self.container.insert(LineNode::new(line));
     }
 
-    pub fn remove_line(&mut self, node: &LineNode<T>) {
-        self.container.remove(node);
+    pub fn remove_line(&mut self, context: &RefCell<SweepLineContext<T>>, line: &Line<T>) {
+        let removed = self.container.remove(&LineNode::new(line.clone()));
     }
 
-    pub fn exchange(&mut self, line1: &LineNode<T>, line2: &LineNode<T>) {
-        let line1 = self.container.get(line1);
-        let line2 = self.container.get(line2);
+    pub fn exchange(
+        &mut self,
+        context: &RefCell<SweepLineContext<T>>,
+        line1: &Line<T>,
+        line2: &Line<T>,
+    ) {
+        println!("Exchanging elements");
+        self.print_in_order();
+        let line1_node = self.container.get(&LineNode::new(line1.clone())).unwrap();
+        let line2_node = self.container.get(&LineNode::new(line2.clone())).unwrap();
 
-        if line1.is_some() && line2.is_some() {
-            line1.unwrap().swap(line2.unwrap());
+        if line1_node.cell.borrow().id != line2_node.cell.borrow().id {
+            line1_node.cell.swap(&line2_node.cell);
         }
+
+        // swap compare order in context
+        context.borrow_mut().exchange_order(&line1.id, &line2.id);
     }
 
-    pub fn pred(&self, line: &LineNode<T>) -> Option<LineNode<T>> {
-        let range = self
-            .container
-            .range((Bound::Unbounded, Bound::Excluded(line)));
+    pub fn pred(&self, line: &Line<T>) -> Option<LineNode<T>> {
+        let range = self.container.range((
+            Bound::Unbounded,
+            Bound::Excluded(&LineNode::new(line.clone())),
+        ));
 
-        range.last().map(|n| n.clone())
+        range.last().map(|l| l.clone())
     }
 
-    pub fn succ(&self, line: &LineNode<T>) -> Option<LineNode<T>> {
-        let range = self
-            .container
-            .range((Bound::Excluded(line), Bound::Unbounded));
+    pub fn succ(&self, line: &Line<T>) -> Option<LineNode<T>> {
+        let range = self.container.range((
+            Bound::Excluded(&LineNode::new(line.clone())),
+            Bound::Unbounded,
+        ));
 
         range.rev().last().map(|n| n.clone())
+    }
+
+    pub fn print_in_order(&self) {
+        for line in self.container.iter() {
+            print!("{}, ", line.cell.borrow().id);
+        }
+        println!();
+        println!();
+        println!();
     }
 }
