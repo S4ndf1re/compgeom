@@ -59,7 +59,7 @@ impl Renderable {
             let col_attrib = gl.GetAttribLocation(program, b"color\0".as_ptr() as *const _);
             gl.VertexAttribPointer(
                 col_attrib as gl::types::GLuint,
-                3,
+                4,
                 gl::FLOAT,
                 0,
                 std::mem::size_of::<Vertex<f32>>() as gl::types::GLsizei,

@@ -8,7 +8,8 @@ pub fn is_right_turn<T: Float + Copy>(p: Vertex<T>, test: Vertex<T>, q: Vertex<T
     let direction_vec_line = q - p;
     let line_normal = direction_vec_line.normal();
 
-    let (_, p_min_dist) = test.point_on_line_with_min_distance_to_self_clamped_0_1_2d(p, q);
+    let (_, p_min_dist) =
+        test.point_on_line_with_min_distance_to_self_clamped_0_1_2d(&(p, q).into());
     let directional_test = test - p_min_dist;
     let dist = directional_test.magnitude();
 
@@ -23,7 +24,8 @@ pub fn is_left_turn<T: Float + Copy>(p: Vertex<T>, test: Vertex<T>, q: Vertex<T>
     let direction_vec_line = q - p;
     let line_normal = direction_vec_line.normal();
 
-    let (_, p_min_dist) = test.point_on_line_with_min_distance_to_self_clamped_0_1_2d(p, q);
+    let (_, p_min_dist) =
+        test.point_on_line_with_min_distance_to_self_clamped_0_1_2d(&(p, q).into());
     let directional_test = test - p_min_dist;
     let dist = directional_test.magnitude();
 
@@ -55,7 +57,7 @@ pub fn graham_scan_by_angle<T: Float + Copy, P: AsRef<[Vertex<T>]>>(
 
     let x_axis = Vertex {
         position: [T::one(), T::zero(), T::zero()],
-        color: [0.0, 0.0, 0.0],
+        color: [0.0, 0.0, 0.0, 0.0],
     };
 
     // Sort by angle, ignoring min_y_point, since the is point always part of hull

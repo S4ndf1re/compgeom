@@ -39,32 +39,34 @@ fn load_polygon_with_hull<T: Float + Copy + FromStr<Err: Debug> + Debug>(
 fn main() -> Result<(), Box<dyn Error>> {
     // Load f32 or f64 Points (type info provided by generic, must be any num::Float)
     let (mut quad, mut quad_hull) =
-        load_polygon_with_hull::<OrderedFloat<f32>>("assets/simple_1.obj");
-    quad.set_color([1.0, 0.0, 0.0]);
-    quad_hull.set_color([5.0, 0.0, 0.0]);
+        load_polygon_with_hull::<OrderedFloat<f32>>("assets/test/quad.obj");
+    quad.set_color([1.0, 0.0, 0.0, 1.0]);
 
     let (mut star, mut star_hull) =
-        load_polygon_with_hull::<OrderedFloat<f32>>("assets/simple_2.obj");
-    star.set_color([0.0, 1.0, 0.0]);
-    star_hull.set_color([0.0, 5.0, 0.0]);
+        load_polygon_with_hull::<OrderedFloat<f32>>("assets/test/star2.obj");
+    star.set_color([0.0, 1.0, 0.0, 1.0]);
 
     let mut lines = vec![];
+    let mut offset = 0;
     for (idx, poly) in [&quad, &star].iter().enumerate() {
-        for i in 0..poly.vertices.len() {
-            let x1 = poly.vertices[i];
-            let x2 = poly.vertices[(i + 1) % poly.vertices.len()];
-            if x1.x() <= x2.x() {
-                lines.push(Line::new(i + idx * poly.vertices.len(), idx, x1, x2))
-            } else {
-                lines.push(Line::new(i + idx * poly.vertices.len(), idx, x2, x1))
-            }
-        }
+        let tmp = poly.to_lines(offset, idx);
+        lines.extend(tmp.1);
+        offset = tmp.0;
     }
 
-    let intersections = sweep_line_intersections(&lines);
-    let mut poly_intersections =
-        Polygon::new(intersections.into_iter().map(|v| v.0).collect::<Vec<_>>());
-    poly_intersections.set_color([1.0, 1.0, 1.0]);
+    let mut intersections = sweep_line_intersections(&lines)
+        .into_iter()
+        .map(|v| v.0)
+        .collect::<Vec<_>>();
+    // intersections.extend(star.unit(&quad));
+    println!("Found {} intersections", intersections.len());
+    let mut poly_intersections = Polygon::new(intersections.clone());
+    poly_intersections.set_color([1.0, 1.0, 1.0, 1.0]);
+
+    let mut poly_fill = Polygon::new(graham_scan_vorlesungsfolie(intersections).unwrap());
+    // poly_fill.push_back(poly_fill.get_center());
+    // poly_fill.insert_front(poly_fill.get_center());
+    poly_fill.set_color([1.0, 1.0, 1.0, 0.3]);
 
     let event_loop = winit::event_loop::EventLoop::new().unwrap();
 
@@ -80,6 +82,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         template,
         display_builder,
         vec![
+            // (gl::TRIANGLE_FAN, poly_fill),
             (gl::LINE_LOOP, star.clone()),
             (gl::LINE_LOOP, quad.clone()),
             (gl::POINTS, quad),

@@ -1,10 +1,11 @@
+use crate::algorithm::sweep_line::line::Line;
 use num::{cast, Float};
 use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::ops::{Add, Mul, Sub};
 
 pub type Position<T: Float> = [T; 3];
-pub type Color = [f32; 3];
+pub type Color = [f32; 4];
 
 #[repr(C, packed)]
 #[derive(Clone, Copy, Debug, PartialOrd, PartialEq)]
@@ -46,14 +47,9 @@ where
     /// However, keep in mind that the value is clamped between 0 and 1.
     pub fn point_on_line_with_min_distance_to_self_clamped_0_1_2d(
         &self,
-        x1: Vertex<T>,
-        x2: Vertex<T>,
+        line: &Line<T>,
     ) -> (T, Vertex<T>) {
-        let r = x2 - x1;
-        let normal = Vertex {
-            position: [-r.y(), r.x(), T::zero()],
-            color: [0.0, 0.0, 0.0],
-        };
+        let r = line.direction;
 
         let s1 = self.x();
         let s2 = self.y();
@@ -61,8 +57,8 @@ where
         let r1 = r.x();
         let r2 = r.y();
 
-        let x1_1 = x1.x();
-        let x1_2 = x1.y();
+        let x1_1 = line.original_x1.x();
+        let x1_2 = line.original_x1.y();
 
         // normal . (self - l(t)) == 1
         // r = x2-x1
@@ -78,7 +74,7 @@ where
 
         let t = (T::one() - r1 * s1 + r1 * x1_1 - r2 * s2 + r2 * x1_2) / (-r1 * r1 - r2 * r2);
         let t = t.clamp(T::zero(), T::one());
-        (t, x1 + r * t)
+        (t, line.original_x1 + r * t)
     }
 
     pub fn x(&self) -> T {
@@ -108,7 +104,7 @@ where
     pub fn normal(&self) -> Self {
         Vertex {
             position: [-self.y(), self.x(), T::zero()],
-            color: [0.0, 0.0, 0.0],
+            color: [0.0, 0.0, 0.0, 0.0],
         }
     }
 }
@@ -173,5 +169,14 @@ where
 {
     fn cmp(&self, other: &Self) -> Ordering {
         self.partial_cmp(other).unwrap()
+    }
+}
+
+impl<T> From<(Vertex<T>, Vertex<T>)> for Line<T>
+where
+    T: Copy + Float,
+{
+    fn from(value: (Vertex<T>, Vertex<T>)) -> Self {
+        Line::new(0, 0, value.0, value.1)
     }
 }

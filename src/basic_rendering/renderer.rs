@@ -145,8 +145,8 @@ precision mediump float;
 
 uniform mat4 ortho;
 attribute vec3 position;
-attribute vec3 color;
-varying vec3 vColor;
+attribute vec4 color;
+varying vec4 vColor;
 
 void main() {
     gl_Position = ortho * vec4(position, 1.0);
@@ -159,9 +159,9 @@ const FRAGMENT_SHADER_SOURCE: &[u8] = b"
 #version 100
 precision mediump float;
 
-varying vec3 vColor;
+varying vec4 vColor;
 
 void main() {
-    gl_FragColor = vec4(vColor, 1.0);
+    gl_FragColor = vColor;
 }
 \0";

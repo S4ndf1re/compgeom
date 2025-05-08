@@ -9,9 +9,9 @@ pub enum SweepLineEvent<T>
 where
     T: Float,
 {
+    LineStart(Line<T>),
     Intersection(Line<T>, Line<T>, Vertex<T>),
     LineEnd(Line<T>),
-    LineStart(Line<T>),
 }
 
 pub struct EventStructure<T>

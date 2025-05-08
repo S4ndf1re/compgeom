@@ -22,9 +22,6 @@ where
             cell: Rc::new(RefCell::new(line)),
         }
     }
-    pub fn swap(&self, other: &Self) {
-        self.cell.swap(other.cell.as_ref());
-    }
 
     pub fn intersects(&self, other: &Self) -> Option<Vertex<T>> {
         self.cell.borrow().intersects(other.cell.borrow().deref())

@@ -72,7 +72,7 @@ where
             let tuple = &self.objects[*p - 1];
             points.push(Vertex {
                 position: [tuple.0, tuple.1, T::zero()],
-                color: [1.0, 0.0, 0.0],
+                color: [1.0, 0.0, 0.0, 1.0],
             });
         }
 
@@ -86,7 +86,7 @@ where
             let tuple = &self.objects[*p - 1];
             points.push(Vertex {
                 position: [tuple.0, tuple.1, T::zero()],
-                color: [1.0, 0.0, 0.0],
+                color: [1.0, 0.0, 0.0, 1.0],
             });
         }
 

@@ -3,7 +3,10 @@ use crate::algorithm::sweep_line::line::Line;
 use crate::algorithm::sweep_line::line_node::LineNode;
 use num::Float;
 use std::cell::RefCell;
+use std::collections::btree_set::Iter;
 use std::collections::{BTreeSet, Bound};
+use std::fmt::Debug;
+use std::ops::Deref;
 
 pub struct SweepLineStateStructure<T>
 where
@@ -14,7 +17,7 @@ where
 
 impl<T> SweepLineStateStructure<T>
 where
-    T: Float + Ord,
+    T: Float + Ord + Debug,
 {
     pub fn new() -> Self {
         Self {
@@ -26,8 +29,8 @@ where
         self.container.insert(LineNode::new(line));
     }
 
-    pub fn remove_line(&mut self, context: &RefCell<SweepLineContext<T>>, line: &Line<T>) {
-        let removed = self.container.remove(&LineNode::new(line.clone()));
+    pub fn remove_line(&mut self, line: &Line<T>) {
+        self.container.remove(&LineNode::new(line.clone()));
     }
 
     pub fn exchange(
@@ -69,10 +72,21 @@ where
 
     pub fn print_in_order(&self) {
         for line in self.container.iter() {
-            print!("{}, ", line.cell.borrow().id);
+            let line = line.cell.borrow().deref().clone();
+            print!(
+                "({:?}, {:?}) -> ({:?}, {:?}) , ",
+                line.x1.x(),
+                line.x1.y(),
+                line.x2.x(),
+                line.x2.y()
+            );
         }
         println!();
         println!();
         println!();
+    }
+
+    pub fn iter(&self) -> Iter<LineNode<T>> {
+        self.container.iter()
     }
 }

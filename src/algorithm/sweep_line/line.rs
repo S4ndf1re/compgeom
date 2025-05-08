@@ -13,21 +13,41 @@ pub struct Line<T: Copy> {
     pub polygon_id: usize,
     pub x1: Vertex<T>,
     pub x2: Vertex<T>,
+    pub original_x1: Vertex<T>,
+    pub original_x2: Vertex<T>,
     pub direction: Vertex<T>,
+    pub normal: Vertex<T>,
     pub context: Option<LineContext<T>>,
+}
+
+fn greater_than<T: Float>(a: T, b: T, eps: T) -> bool {
+    (a - b) > ((if a.abs() < b.abs() { b.abs() } else { a.abs() }) * eps)
+}
+fn less_than<T: Float>(a: T, b: T, eps: T) -> bool {
+    (b - a) > ((if a.abs() < b.abs() { b.abs() } else { a.abs() }) * eps)
 }
 
 impl<T> Line<T>
 where
     T: Float,
 {
-    pub fn new(id: usize, polygon_id: usize, x1: Vertex<T>, x2: Vertex<T>) -> Self {
+    pub fn new(id: usize, polygon_id: usize, mut x1: Vertex<T>, mut x2: Vertex<T>) -> Self {
+        let mut x1_corrected = x1;
+        let mut x2_corrected = x2;
+        let normal = (x2 - x1).normal();
+        if x1_corrected.x() > x2_corrected.x() {
+            std::mem::swap(&mut x1_corrected, &mut x2_corrected);
+        }
+
         Self {
             id,
             polygon_id,
-            x1,
-            x2,
-            direction: x2 - x1,
+            x1: x1_corrected,
+            x2: x2_corrected,
+            original_x1: x1,
+            original_x2: x2,
+            normal,
+            direction: x2_corrected - x1_corrected,
             context: None,
         }
     }
@@ -47,18 +67,29 @@ where
         let x = self.context.clone().unwrap().borrow().x_pos;
 
         // x1_1 + t * r_1 = x
-        (x - self.x1.x()) / self.direction.x()
+        let t = (x - self.x1.x()) / self.direction.x();
+        t
     }
 
     pub fn f(&self, t: T) -> Vertex<T> {
         self.x1 * (T::one() - t) + self.x2 * t
     }
 
+    pub fn point_on_normal_side(&self, point: &Vertex<T>) -> bool {
+        let (_, p_min_dist) = point.point_on_line_with_min_distance_to_self_clamped_0_1_2d(self);
+        let directional_test = *point - p_min_dist;
+        let dist = directional_test.magnitude();
+
+        let cosine = self.normal.cosine(&directional_test);
+
+        cosine <= T::zero() || dist < T::from(0.1).unwrap()
+    }
+
     /// Test for intersection of two line segments
     pub fn intersects(&self, other: &Self) -> Option<Vertex<T>> {
-        if self.polygon_id == other.polygon_id {
-            return None;
-        }
+        // if self.polygon_id == other.polygon_id {
+        //     return None;
+        // }
 
         let s1 = self.x2 - self.x1;
         let s2 = other.x2 - other.x1;
@@ -73,15 +104,15 @@ where
         let t =
             (s2.x() * (self.x1.y() - other.x1.y()) - s2.y() * (self.x1.x() - other.x1.x())) / denom;
 
-        if s >= T::zero() - T::epsilon()
-            && s <= T::one() + T::epsilon()
-            && t >= T::zero() - T::epsilon()
-            && t <= T::one() + T::epsilon()
-        {
+        if s >= T::zero() && s <= T::one() && t >= T::zero() && t <= T::one() {
             Some(self.f(t))
         } else {
             None
         }
+    }
+
+    pub fn is_vertical(&self) -> bool {
+        self.direction.x() < T::epsilon() && self.direction.y() > T::epsilon()
     }
 }
 
@@ -110,17 +141,12 @@ where
     T: Float,
 {
     fn cmp(&self, other: &Self) -> Ordering {
+        let local_context = self.context.clone().unwrap();
         if self.id == other.id {
             return Ordering::Equal;
         }
 
-        if let Some(order) = self
-            .context
-            .clone()
-            .unwrap()
-            .borrow()
-            .get_order(&self.id, &other.id)
-        {
+        if let Some(order) = local_context.borrow().get_order(&self.id, &other.id) {
             if order != Ordering::Equal {
                 return order;
             }
@@ -129,9 +155,15 @@ where
         let y_self = self.get_y_for_context();
         let y_other = other.get_y_for_context();
 
-        let ordering = y_self.partial_cmp(&y_other).unwrap();
+        let ordering = if less_than(y_self, y_other, T::from(0.00001).unwrap()) {
+            Ordering::Less
+        } else if greater_than(y_self, y_other, T::from(0.00001).unwrap()) {
+            Ordering::Greater
+        } else {
+            Ordering::Equal
+        };
         // In case both x and y are equal, determine the general direction. If this is also equal, the lines are collinear, and the length is important
-        let ordering = if ordering == Ordering::Equal {
+        let mut ordering = if ordering == Ordering::Equal {
             let dir1 = self.x2 - self.x1;
             let dir2 = other.x2 - other.x1;
 
@@ -147,9 +179,18 @@ where
             ordering
         };
 
-        self.context
-            .clone()
-            .unwrap()
+        {
+            // On intersections, the order will swap. So if we are currently looking at an intersection, swap order preemptively
+            let context_inner = local_context.borrow();
+            if context_inner.is_intersection
+                && (context_inner.line_id1 == self.id && context_inner.line_id2 == other.id
+                    || context_inner.line_id1 == other.id && context_inner.line_id2 == self.id)
+            {
+                ordering = ordering.reverse();
+            }
+        }
+
+        local_context
             .borrow_mut()
             .set_order(self.id, other.id, ordering);
 

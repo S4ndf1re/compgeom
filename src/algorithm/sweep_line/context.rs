@@ -2,6 +2,9 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 
 pub struct SweepLineContext<T> {
+    pub is_intersection: bool,
+    pub line_id1: usize,
+    pub line_id2: usize,
     pub x_pos: T,
     pub relative_order: HashMap<usize, HashMap<usize, Ordering>>,
 }
