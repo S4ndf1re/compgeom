@@ -1,4 +1,4 @@
-use crate::algorithm::sweep_line::context::SweepLineContext;
+use crate::algorithm::sweep_line::context::{IntersectionMode, SweepLineContext};
 use crate::algorithm::sweep_line::events::{EventStructure, SweepLineEvent};
 use crate::algorithm::sweep_line::line::Line;
 use crate::algorithm::sweep_line::line_storage::SweepLineStateStructure;
@@ -33,6 +33,7 @@ pub fn is_intersecting_trigger_event<T: Float + Ord + Copy + Debug>(
 
 pub fn sweep_line_intersections<T: Float + Ord + Debug, L: AsRef<[Line<T>]>>(
     lines: L,
+    mode: IntersectionMode,
 ) -> Vec<(Vertex<T>, Line<T>, Line<T>)> {
     let context = Rc::new(RefCell::new(SweepLineContext {
         is_intersection: false,
@@ -40,6 +41,7 @@ pub fn sweep_line_intersections<T: Float + Ord + Debug, L: AsRef<[Line<T>]>>(
         line_id2: 0,
         x_pos: T::zero(),
         relative_order: HashMap::new(),
+        mode,
     }));
     let mut sss = SweepLineStateStructure::new();
     let mut queue = EventStructure::new();

@@ -1,8 +1,8 @@
-use crate::algorithm::sweep_line::context::SweepLineContext;
+use crate::algorithm::sweep_line::context::{IntersectionMode, SweepLineContext};
 use crate::objects::vertex::Vertex;
 use num::Float;
 use std::cell::RefCell;
-use std::cmp::Ordering;
+use std::cmp::{Ordering, PartialEq};
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
 
@@ -89,7 +89,9 @@ where
 
     /// Test for intersection of two line segments
     pub fn intersects(&self, other: &Self) -> Option<Vertex<T>> {
-        if self.polygon_id == other.polygon_id {
+        if self.context.clone().unwrap().borrow().mode == IntersectionMode::PolygonDifference
+            && self.polygon_id == other.polygon_id
+        {
             return None;
         }
 

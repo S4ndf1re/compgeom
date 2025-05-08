@@ -1,4 +1,4 @@
-mod context;
+pub mod context;
 mod events;
 pub mod line;
 mod line_node;

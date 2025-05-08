@@ -5,6 +5,7 @@ mod basic_rendering;
 mod objects;
 
 use crate::algorithm::graham_scan::graham_scan::graham_scan_vorlesungsfolie;
+use crate::algorithm::sweep_line::context::IntersectionMode;
 use crate::algorithm::sweep_line::sweep_line::sweep_line_intersections;
 use crate::basic_rendering::renderer::DrawMode;
 use crate::objects::polygon::Polygon;
@@ -39,10 +40,10 @@ fn load_polygon_with_hull<T: Float + Copy + FromStr<Err: Debug> + Debug>(
 }
 fn main() -> Result<(), Box<dyn Error>> {
     // Load f32 or f64 Points (type info provided by generic, must be any num::Float)
-    let (mut quad, _) = load_polygon_with_hull::<OrderedFloat<f32>>("assets/simple_1.obj");
+    let (mut quad, _) = load_polygon_with_hull::<OrderedFloat<f32>>("assets/quad.obj");
     quad.set_color([1.0, 0.0, 0.0, 1.0]);
 
-    let (mut star, _) = load_polygon_with_hull::<OrderedFloat<f32>>("assets/simple_2.obj");
+    let (mut star, _) = load_polygon_with_hull::<OrderedFloat<f32>>("assets/star2.obj");
     star.set_color([0.0, 1.0, 0.0, 1.0]);
 
     let mut lines = vec![];
@@ -53,7 +54,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         offset = tmp.0;
     }
 
-    let mut intersections = sweep_line_intersections(&lines)
+    let mut intersections = sweep_line_intersections(&lines, IntersectionMode::PolygonDifference)
         .into_iter()
         .map(|v| v.0)
         .collect::<Vec<_>>();

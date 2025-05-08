@@ -1,12 +1,19 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
 
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
+pub enum IntersectionMode {
+    All,
+    PolygonDifference,
+}
+
 pub struct SweepLineContext<T> {
     pub is_intersection: bool,
     pub line_id1: usize,
     pub line_id2: usize,
     pub x_pos: T,
     pub relative_order: HashMap<usize, HashMap<usize, Ordering>>,
+    pub mode: IntersectionMode,
 }
 
 impl<T> SweepLineContext<T> {
