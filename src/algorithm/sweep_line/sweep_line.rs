@@ -16,6 +16,9 @@ pub fn is_intersecting_trigger_event<T: Float + Ord + Copy + Debug>(
     line1: &Line<T>,
     line2: &Line<T>,
 ) {
+    if line1.id == 5 && line2.id == 4 || line1.id == 4 && line2.id == 5 {
+        println!("Debug here");
+    }
     if intersecting_store.get(&(line1.id, line2.id)).is_some() {
         return;
     }

@@ -101,10 +101,19 @@ where
             return None; // Lines are parallel
         }
 
-        let s = (-s1.y() * (self.x1.x() - other.x1.x()) + s1.x() * (self.x1.y() - other.x1.y()))
+        let mut s = (-s1.y() * (self.x1.x() - other.x1.x())
+            + s1.x() * (self.x1.y() - other.x1.y()))
             / denom;
-        let t =
+        let mut t =
             (s2.x() * (self.x1.y() - other.x1.y()) - s2.y() * (self.x1.x() - other.x1.x())) / denom;
+
+        if (T::one() - s).abs() <= T::epsilon() {
+            s = T::one();
+        }
+
+        if (T::one() - t).abs() <= T::epsilon() {
+            t = T::one();
+        }
 
         if s >= T::zero() && s <= T::one() && t >= T::zero() && t <= T::one() {
             Some(self.f(t))
@@ -157,9 +166,9 @@ where
         let y_self = self.get_y_for_context();
         let y_other = other.get_y_for_context();
 
-        let ordering = if less_than(y_self, y_other, T::from(0.00001).unwrap()) {
+        let ordering = if less_than(y_self, y_other, T::from(0.0000001).unwrap()) {
             Ordering::Less
-        } else if greater_than(y_self, y_other, T::from(0.00001).unwrap()) {
+        } else if greater_than(y_self, y_other, T::from(0.0000001).unwrap()) {
             Ordering::Greater
         } else {
             Ordering::Equal

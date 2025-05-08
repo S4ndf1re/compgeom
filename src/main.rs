@@ -41,7 +41,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let (mut quad, mut quad_hull) = load_polygon_with_hull::<OrderedFloat<f32>>("assets/quad.obj");
     quad.set_color([1.0, 0.0, 0.0, 1.0]);
 
-    let (mut star, mut star_hull) = load_polygon_with_hull::<OrderedFloat<f32>>("assets/star2.obj");
+    let (mut star, mut star_hull) = load_polygon_with_hull::<OrderedFloat<f32>>("assets/star.obj");
     star.set_color([0.0, 1.0, 0.0, 1.0]);
 
     let mut lines = vec![];
