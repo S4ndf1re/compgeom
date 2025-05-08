@@ -39,10 +39,10 @@ fn load_polygon_with_hull<T: Float + Copy + FromStr<Err: Debug> + Debug>(
 }
 fn main() -> Result<(), Box<dyn Error>> {
     // Load f32 or f64 Points (type info provided by generic, must be any num::Float)
-    let (mut quad, _) = load_polygon_with_hull::<OrderedFloat<f32>>("assets/quad.obj");
+    let (mut quad, _) = load_polygon_with_hull::<OrderedFloat<f32>>("assets/simple_1.obj");
     quad.set_color([1.0, 0.0, 0.0, 1.0]);
 
-    let (mut star, _) = load_polygon_with_hull::<OrderedFloat<f32>>("assets/star2.obj");
+    let (mut star, _) = load_polygon_with_hull::<OrderedFloat<f32>>("assets/simple_2.obj");
     star.set_color([0.0, 1.0, 0.0, 1.0]);
 
     let mut lines = vec![];
@@ -63,6 +63,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     println!("Found {} intersections", intersections.len());
+    // Add all other lines that belong to the output
     intersections.extend(star.unit(&quad, &mut intersected_set));
     let mut poly_intersections = Polygon::new(
         intersected_set
