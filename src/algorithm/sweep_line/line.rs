@@ -194,6 +194,9 @@ where
 
         {
             // On intersections, the order will swap. So if we are currently looking at an intersection, swap order preemptively
+            // This case can only happen, when no relative ordering was found. If a < b (before intersection), the calculation above will generate a >= b at intersection,
+            // since the slope of a > b. ( a hit b ). The same goes the other way around. So the ordering in the tree is also slightly different.
+            // However, the tree contains the old ordering (defined by the relative ordering of the other elements). Meaning it must now represent the new ordering.
             let context_inner = local_context.borrow();
             if context_inner.is_intersection
                 && (context_inner.line_id1 == self.id && context_inner.line_id2 == other.id
