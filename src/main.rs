@@ -65,7 +65,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     println!("Found {} intersections", intersections.len());
     // Add all other lines that belong to the output
-    intersections.extend(star.unit(&quad, &mut intersected_set));
+    // intersections.extend(star.unit(&quad, &mut intersected_set));
     let mut poly_intersections = Polygon::new(
         intersected_set
             .into_iter()
@@ -95,7 +95,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         template,
         display_builder,
         vec![
-            (gl::TRIANGLE_FAN, poly_fill),
+            // (gl::TRIANGLE_FAN, poly_fill),
             (gl::LINE_LOOP, star.clone()),
             (gl::LINE_LOOP, quad.clone()),
             (gl::POINTS, quad),

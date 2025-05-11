@@ -84,7 +84,7 @@ where
 
         let cosine = self.normal.cosine(&directional_test);
 
-        cosine <= T::zero() || dist < T::from(0.1).unwrap()
+        cosine <= T::zero() || dist < T::from(0.00001).unwrap()
     }
 
     /// Test for intersection of two line segments
@@ -168,9 +168,9 @@ where
         let y_self = self.get_y_for_context();
         let y_other = other.get_y_for_context();
 
-        let ordering = if less_than(y_self, y_other, T::from(0.0000001).unwrap()) {
+        let ordering = if less_than(y_self, y_other, T::from(0.0001).unwrap()) {
             Ordering::Less
-        } else if greater_than(y_self, y_other, T::from(0.0000001).unwrap()) {
+        } else if greater_than(y_self, y_other, T::from(0.0001).unwrap()) {
             Ordering::Greater
         } else {
             Ordering::Equal
