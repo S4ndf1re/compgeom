@@ -1,9 +1,9 @@
-use crate::algorithm::sweep_line::line::Line;
 use crate::objects::vertex::Vertex;
 use num::Float;
 use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 use std::fmt::Debug;
+use crate::objects::line::Line;
 
 #[derive(Ord, PartialOrd, PartialEq, Eq)]
 pub enum SweepLineEvent<T>

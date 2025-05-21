@@ -1,4 +1,4 @@
-use crate::algorithm::sweep_line::line::Line;
+use crate::objects::line::Line;
 use num::{cast, Float};
 use std::cmp::Ordering;
 use std::fmt::Debug;
@@ -12,12 +12,14 @@ pub type Color = [f32; 4];
 pub struct Vertex<T> {
     pub position: Position<T>,
     pub color: Color,
+    pub id: usize,
 }
 
 impl<T> Vertex<T>
 where
     T: Float + Copy,
 {
+
     pub fn magnitude(&self) -> T {
         let magnitude = (*self * *self).sqrt();
         if magnitude < T::epsilon() {
@@ -38,14 +40,11 @@ where
                 cast(self.z()).unwrap(),
             ],
             color: self.color,
+            id: self.id,
         }
     }
 
-    /// On a line defined by l(t) = (1-t)*x1 + t*x2 = x1 + t * (x2-x1), find a t and the corresponding point,
-    /// so that the distance between self and the line is minimal.
-    /// normally this would mean, that the cosine between the normal of the line and the vector from the line to the point is 1
-    /// However, keep in mind that the value is clamped between 0 and 1.
-    pub fn point_on_line_with_min_distance_to_self_clamped_0_1_2d(
+    pub fn point_on_line_with_min_distance_to_self_2d(
         &self,
         line: &Line<T>,
     ) -> (T, Vertex<T>) {
@@ -73,6 +72,20 @@ where
         // t == (- r1*s1 + r1*x1 - r2*s2 + r2*x2) / (-r1*r1 - r2*r2)
 
         let t = (T::one() - r1 * s1 + r1 * x1_1 - r2 * s2 + r2 * x1_2) / (-r1 * r1 - r2 * r2);
+        (t, line.original_x1 + r * t)
+    }
+
+    /// On a line defined by l(t) = (1-t)*x1 + t*x2 = x1 + t * (x2-x1), find a t and the corresponding point,
+    /// so that the distance between self and the line is minimal.
+    /// normally this would mean, that the cosine between the normal of the line and the vector from the line to the point is 1
+    /// However, keep in mind that the value is clamped between 0 and 1.
+    pub fn point_on_line_with_min_distance_to_self_clamped_0_1_2d(
+        &self,
+        line: &Line<T>,
+    ) -> (T, Vertex<T>) {
+        let r = line.direction;
+        let t = self.point_on_line_with_min_distance_to_self_2d(line).0;
+
         let t = t.clamp(T::zero(), T::one());
         (t, line.original_x1 + r * t)
     }
@@ -105,6 +118,7 @@ where
         Vertex {
             position: [-self.y(), self.x(), T::zero()],
             color: [0.0, 0.0, 0.0, 0.0],
+            id: self.id,
         }
     }
 }
@@ -119,6 +133,7 @@ where
         Vertex {
             position: [self.x() + rhs.x(), self.y() + rhs.y(), self.z() + rhs.z()],
             color: self.color,
+            id: self.id,
         }
     }
 }
@@ -133,6 +148,7 @@ where
         Vertex {
             position: [self.x() - rhs.x(), self.y() - rhs.y(), self.z() - rhs.z()],
             color: self.color,
+            id: self.id,
         }
     }
 }
@@ -157,6 +173,7 @@ where
         Vertex {
             position: [self.x() * rhs, self.y() * rhs, self.z() * rhs],
             color: self.color,
+            id: self.id,
         }
     }
 }
@@ -172,11 +189,25 @@ where
     }
 }
 
-impl<T> From<(Vertex<T>, Vertex<T>)> for Line<T>
-where
-    T: Copy + Float + Debug,
-{
-    fn from(value: (Vertex<T>, Vertex<T>)) -> Self {
-        Line::new(0, 0, value.0, value.1)
+impl<T> From<(T, T)> for Vertex<T>
+where T: Float + Copy {
+    fn from(value: (T, T)) -> Self {
+        Self {
+            id: 0,
+            position: [value.0, value.1, T::zero()],
+            color:[0.0, 0.0, 0.0,0.0],
+        }
+    }
+}
+
+
+impl<T> From<(T, T, T)> for Vertex<T>
+where T: Float + Copy {
+    fn from(value: (T, T, T)) -> Self {
+        Self {
+            id: 0,
+            position: [value.0, value.1, value.2],
+            color:[0.0, 0.0, 0.0,0.0],
+        }
     }
 }

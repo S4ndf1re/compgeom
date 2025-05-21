@@ -73,6 +73,7 @@ where
             points.push(Vertex {
                 position: [tuple.0, tuple.1, T::zero()],
                 color: [1.0, 0.0, 0.0, 1.0],
+                id: *p,
             });
         }
 
@@ -87,6 +88,7 @@ where
             points.push(Vertex {
                 position: [tuple.0, tuple.1, T::zero()],
                 color: [1.0, 0.0, 0.0, 1.0],
+                id: *p,
             });
         }
 

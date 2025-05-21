@@ -1,4 +1,4 @@
-use crate::algorithm::sweep_line::line::Line;
+use crate::objects::line::Line;
 use crate::objects::vertex::Vertex;
 use num::Float;
 use std::cell::RefCell;

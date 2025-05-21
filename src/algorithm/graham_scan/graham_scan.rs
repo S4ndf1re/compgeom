@@ -59,6 +59,7 @@ pub fn graham_scan_by_angle<T: Float + Copy + Debug, P: AsRef<[Vertex<T>]>>(
     let x_axis = Vertex {
         position: [T::one(), T::zero(), T::zero()],
         color: [0.0, 0.0, 0.0, 0.0],
+        id: 0,
     };
 
     // Sort by angle, ignoring min_y_point, since the is point always part of hull

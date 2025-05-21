@@ -1,5 +1,5 @@
 use crate::algorithm::sweep_line::context::SweepLineContext;
-use crate::algorithm::sweep_line::line::Line;
+use crate::objects::line::Line;
 use crate::algorithm::sweep_line::line_node::LineNode;
 use num::Float;
 use std::cell::RefCell;

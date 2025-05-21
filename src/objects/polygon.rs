@@ -1,4 +1,5 @@
-use crate::algorithm::sweep_line::line::Line;
+use crate::algorithm::graham_scan::graham_scan::graham_scan_vorlesungsfolie;
+use crate::objects::line::Line;
 use crate::objects::vertex::{Color, Vertex};
 use num::Float;
 use std::collections::HashSet;
@@ -76,6 +77,7 @@ where
         let mut sum = Vertex {
             position: [T::zero(), T::zero(), T::zero()],
             color: [0.0, 0.0, 0.0, 0.0],
+            id: 0,
         };
 
         for p in self.vertices.iter() {
@@ -101,33 +103,34 @@ impl<T> Polygon<T>
 where
     T: Float + Ord + Debug + Hash,
 {
-    pub fn is_point_inside(&self, point: &Vertex<T>) -> bool {
-        let (_, lines) = self.to_lines(0, 0);
-
-        lines.iter().all(|l| l.point_on_normal_side(point))
-    }
-
-    pub fn unit(&self, other: &Self, already_intersected: &mut HashSet<(T, T)>) -> Vec<Vertex<T>>
+    pub fn unit(&self, other: &Self) -> Option<Vec<Vertex<T>>>
     where
         T: Float,
     {
-        let mut result = vec![];
+        let mut all_points = self.vertices.clone().into_iter().collect::<Vec<_>>();
+        all_points.extend(other.vertices.iter().map(|v| v.clone()));
+        let all_points = all_points
+            .into_iter()
+            .enumerate()
+            .map(|(id, mut v)| {
+                v.id = id;
+                v
+            })
+            .collect::<Vec<_>>();
 
-        for p in other.vertices.iter() {
-            if self.is_point_inside(p) && !already_intersected.contains(&(p.x(), p.y())) {
-                result.push(*p);
-                already_intersected.insert((p.x(), p.y()));
+        let hull = graham_scan_vorlesungsfolie(&all_points)?;
+        let hull_set: HashSet<usize> = HashSet::from_iter(hull.into_iter().map(|v| v.id));
+
+        let mut inner_points = vec![];
+
+        for p in all_points {
+            let id = p.id;
+            if !hull_set.contains(&id) {
+                inner_points.push(p);
             }
         }
 
-        for p in self.vertices.iter() {
-            if other.is_point_inside(p) && !already_intersected.contains(&(p.x(), p.y())) {
-                result.push(*p);
-                already_intersected.insert((p.x(), p.y()));
-            }
-        }
-
-        result
+        Some(inner_points)
     }
 }
 
@@ -143,5 +146,13 @@ where
             let z = v.z();
             write!(f, "\tV({:.}, {:.}, {:.})", x, y, z)?
         })
+    }
+}
+
+
+impl<T> From<Line<T>> for Polygon<T>
+where T: Float + Copy + Debug {
+    fn from(value: Line<T>) -> Self {
+        Self::new(vec![value.x1, value.x2])
     }
 }
