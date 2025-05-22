@@ -75,6 +75,10 @@ where
         (t, line.original_x1 + r * t)
     }
 
+    pub fn distance_to_line_hessen(&self, line: &Line<T>) -> T {
+        self * line.hessen_normal - line.hessen_d
+    }
+
     /// On a line defined by l(t) = (1-t)*x1 + t*x2 = x1 + t * (x2-x1), find a t and the corresponding point,
     /// so that the distance between self and the line is minimal.
     /// normally this would mean, that the cosine between the normal of the line and the vector from the line to the point is 1

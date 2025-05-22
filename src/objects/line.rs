@@ -19,6 +19,7 @@ pub struct Line<T: Copy> {
     pub direction: Vertex<T>,
     pub normal: Vertex<T>,
     pub hessen_normal: Vertex<T>,
+    pub hessen_d: T,
     pub context: Option<LineContext<T>>,
 }
 
@@ -42,6 +43,11 @@ where
         }
         let direction_corrected = x2_corrected - x1_corrected;
         let direction = x2 - x1;
+        let hessen_normal = if direction * normal >= T::zero() {
+            normal * (T::one()/normal.magnitude())
+        } else {
+            -normal * (T::one()/normal.magnitude())
+        };
 
         Self {
             id,
@@ -51,11 +57,8 @@ where
             original_x1: x1,
             original_x2: x2,
             normal,
-            hessen_normal: if direction * normal >= T::zero() {
-                normal * (T::one()/normal.magnitude())
-            } else {
-                -normal * (T::one()/normal.magnitude())
-            },
+            hessen_normal,
+            hessen_d: direction * hessen_normal,
             direction: direction_corrected,
             context: None,
         }
