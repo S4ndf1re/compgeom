@@ -76,7 +76,7 @@ where
     }
 
     pub fn distance_to_line_hessen(&self, line: &Line<T>) -> T {
-        self * line.hessen_normal - line.hessen_d
+        *self * line.hessen_normal - line.hessen_d
     }
 
     /// On a line defined by l(t) = (1-t)*x1 + t*x2 = x1 + t * (x2-x1), find a t and the corresponding point,
