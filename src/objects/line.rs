@@ -18,6 +18,7 @@ pub struct Line<T: Copy> {
     pub original_x2: Vertex<T>,
     pub direction: Vertex<T>,
     pub normal: Vertex<T>,
+    pub hessen_normal: Vertex<T>,
     pub context: Option<LineContext<T>>,
 }
 
@@ -39,6 +40,8 @@ where
         if x1_corrected.x() > x2_corrected.x() {
             std::mem::swap(&mut x1_corrected, &mut x2_corrected);
         }
+        let direction_corrected = x2_corrected - x1_corrected;
+        let direction = x2 - x1;
 
         Self {
             id,
@@ -48,7 +51,12 @@ where
             original_x1: x1,
             original_x2: x2,
             normal,
-            direction: x2_corrected - x1_corrected,
+            hessen_normal: if direction * normal >= T::zero() {
+                normal * (T::one()/normal.magnitude())
+            } else {
+                -normal * (T::one()/normal.magnitude())
+            },
+            direction: direction_corrected,
             context: None,
         }
     }

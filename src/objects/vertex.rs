@@ -2,7 +2,7 @@ use crate::objects::line::Line;
 use num::{cast, Float};
 use std::cmp::Ordering;
 use std::fmt::Debug;
-use std::ops::{Add, Mul, Sub};
+use std::ops::{Add, Mul, Neg, Sub};
 
 pub type Position<T> = [T; 3];
 pub type Color = [f32; 4];
@@ -178,6 +178,14 @@ where
     }
 }
 
+impl<T> Neg for Vertex<T>
+where T: Float + Copy{
+    type Output = Vertex<T>;
+    fn neg(self) -> Self::Output {
+        self * -T::one()
+    }
+}
+
 impl<T> Eq for Vertex<T> where T: Float {}
 
 impl<T> Ord for Vertex<T>
@@ -195,7 +203,7 @@ where T: Float + Copy {
         Self {
             id: 0,
             position: [value.0, value.1, T::zero()],
-            color:[0.0, 0.0, 0.0,0.0],
+            color:[0.0, 0.0, 0.0, 0.0],
         }
     }
 }

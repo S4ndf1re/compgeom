@@ -20,11 +20,11 @@ pub fn line_decider<T: Float + Copy + Debug, P: AsRef<[Vertex<T>]>>(line: &Line<
 
     for p in points.as_ref() {
         let (_t, point) = p.point_on_line_with_min_distance_to_self_2d(line);
-        let diff = point - *p;
+        let diff = *p - point;
         let dist = diff.magnitude();
         max_dist = max_dist.max(dist);
 
-        if (line.normal * -T::one()).cosine(&diff) >= T::zero() {
+        if line.hessen_normal.cosine(&diff) >= T::zero() {
             // is on left
             orientation.push(PointOrientation::Left(dist, Polygon::new(vec![*p])));
         } else {

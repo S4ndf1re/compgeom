@@ -101,10 +101,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let points = generate_points(-10.0, 10.0, 20);
     let line = Line::<f32>::new(0, 0, (-2.0, 1.0).into(), (1.0, 3.0).into());
+
     let mut line_polygon: Polygon<_> = line.clone().into();
     line_polygon.set_color([1.0, 1.0, 1.0, 1.0]);
 
-    const VISIBILITY_FACTOR: f32 = 1.5;
+    const VISIBILITY_FACTOR: f32 = 2.0;
     let (mut max_dist, decided_points) = line_decider(&line, &points);
     max_dist += 0.2;
     let mut draw_polygons = vec![(gl::LINES, line_polygon)];
