@@ -1,7 +1,6 @@
 use crate::basic_rendering::appstate::AppState;
 use crate::basic_rendering::renderer::{DrawMode, Renderer};
 use crate::basic_rendering::util::{create_gl_context, gl_config_picker, window_attributes};
-use crate::objects::polygon::Polygon;
 use glutin::config::{ConfigTemplateBuilder, GetGlConfig};
 use glutin::context::PossiblyCurrentContext;
 use glutin::display::GetGlDisplay;
@@ -9,6 +8,7 @@ use glutin::prelude::*;
 use glutin::surface::SwapInterval;
 use glutin_winit::{DisplayBuilder, GlWindow};
 use num::Float;
+use std::cell::RefCell;
 use std::error::Error;
 use std::fmt::Debug;
 use std::num::NonZeroU32;
@@ -17,28 +17,32 @@ use winit::event::{KeyEvent, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
 use winit::keyboard::{Key, NamedKey};
 
-pub struct App<T>
+use super::live_renderable::LiveRenderable;
+
+pub struct App<'l, T, L>
 where
     T: Debug + Copy,
+    L: LiveRenderable<T>,
 {
     pub template: ConfigTemplateBuilder,
-    pub renderer: Option<Renderer>,
+    pub renderer: Option<Renderer<'l, T, L>>,
     pub state: Option<AppState>,
     pub gl_context: Option<PossiblyCurrentContext>,
     gl_display: GlDisplayCreationState,
     pub exit_state: Result<(), Box<dyn Error>>,
-    polygons: Vec<(gl::types::GLenum, Polygon<T>)>,
+    polygons: &'l RefCell<L>,
     draw_mode: DrawMode,
 }
 
-impl<T> App<T>
+impl<'l, T, L> App<'l, T, L>
 where
     T: Float + Copy + Debug + 'static,
+    L: LiveRenderable<T>,
 {
     pub fn new(
         template: ConfigTemplateBuilder,
         display_builder: DisplayBuilder,
-        polygons: Vec<(gl::types::GLenum, Polygon<T>)>,
+        polygons: &'l RefCell<L>,
         draw_mode: DrawMode,
     ) -> Self {
         Self {
@@ -53,9 +57,10 @@ where
         }
     }
 }
-impl<T> ApplicationHandler for App<T>
+impl<'l, T, L> ApplicationHandler for App<'l, T, L>
 where
     T: Float + Debug + Copy + 'static,
+    L: LiveRenderable<T>,
 {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         let (window, gl_config) = match &self.gl_display {
@@ -119,7 +124,7 @@ where
         gl_context.make_current(&gl_surface).unwrap();
 
         self.renderer.get_or_insert_with(|| {
-            Renderer::new(&gl_config.display(), self.draw_mode, &self.polygons)
+            Renderer::new(&gl_config.display(), self.draw_mode, self.polygons)
         });
 
         // Try setting vsync.
@@ -165,6 +170,7 @@ where
                     let gl_context = self.gl_context.as_ref().unwrap();
                     let renderer = self.renderer.as_ref().unwrap();
                     renderer.draw();
+                    window.set_title(&self.polygons.borrow().get_current_title());
                     window.request_redraw();
 
                     gl_surface.swap_buffers(gl_context).unwrap();
@@ -179,11 +185,15 @@ where
                     },
                 ..
             } => event_loop.exit(),
+            WindowEvent::KeyboardInput { event, .. } => {
+                self.polygons.borrow_mut().user_input(Some(event));
+            }
             _ => (),
         }
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 enum GlDisplayCreationState {
     /// The display was not build yet.
     Builder(DisplayBuilder),

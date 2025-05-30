@@ -1,7 +1,7 @@
 use crate::algorithm::sweep_line::context::{IntersectionMode, SweepLineContext};
 use crate::algorithm::sweep_line::events::{EventStructure, SweepLineEvent};
-use crate::objects::line::Line;
 use crate::algorithm::sweep_line::line_storage::SweepLineStateStructure;
+use crate::objects::line::Line;
 use crate::objects::vertex::Vertex;
 use num::Float;
 use std::cell::RefCell;

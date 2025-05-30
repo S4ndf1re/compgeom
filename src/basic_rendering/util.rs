@@ -11,6 +11,8 @@ use std::fmt::Debug;
 use winit::raw_window_handle::HasWindowHandle;
 use winit::window::{Window, WindowAttributes};
 
+use super::live_renderable::ZDepth;
+
 pub fn get_gl_string(
     gl: &crate::gl::Gl,
     variant: crate::gl::types::GLenum,
@@ -99,7 +101,7 @@ pub unsafe fn create_shader(
 
 pub fn fit_all_polygons<T: Float + Copy + Debug>(
     draw_mode: DrawMode,
-    polygons: &mut [(gl::types::GLenum, Polygon<T>)],
+    polygons: &mut [(ZDepth, gl::types::GLenum, Polygon<T>)],
 ) -> (T, T, T, T) {
     match draw_mode {
         DrawMode::FitSideBySide => {
@@ -107,8 +109,8 @@ pub fn fit_all_polygons<T: Float + Copy + Debug>(
             let mut last_x = T::zero();
 
             for p in polygons {
-                p.1.shift_to(last_x, T::zero());
-                let p_bounds = p.1.get_bounds();
+                p.2.shift_to(last_x, T::zero());
+                let p_bounds = p.2.get_bounds();
                 bounds.1 = p_bounds.1;
                 bounds.3 = bounds.3.max(p_bounds.3);
                 last_x = bounds.1;
@@ -120,7 +122,7 @@ pub fn fit_all_polygons<T: Float + Copy + Debug>(
             let mut bounds: (T, T, T, T) = (T::zero(), T::zero(), T::zero(), T::zero());
 
             for p in polygons {
-                let p_bounds = p.1.get_bounds();
+                let p_bounds = p.2.get_bounds();
                 bounds.0 = bounds.0.min(p_bounds.0);
                 bounds.1 = bounds.1.max(p_bounds.1);
                 bounds.2 = bounds.2.min(p_bounds.2);

@@ -1,5 +1,5 @@
 use crate::objects::line::Line;
-use num::{cast, Float};
+use num::{Float, cast};
 use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::ops::{Add, Mul, Neg, Sub};
@@ -8,7 +8,7 @@ pub type Position<T> = [T; 3];
 pub type Color = [f32; 4];
 
 #[repr(C, packed)]
-#[derive(Clone, Copy, Debug, PartialOrd, PartialEq)]
+#[derive(Clone, Copy, PartialOrd, PartialEq)]
 pub struct Vertex<T> {
     pub position: Position<T>,
     pub color: Color,
@@ -19,7 +19,6 @@ impl<T> Vertex<T>
 where
     T: Float + Copy,
 {
-
     pub fn magnitude(&self) -> T {
         let magnitude = (*self * *self).sqrt();
         if magnitude < T::epsilon() {
@@ -44,10 +43,7 @@ where
         }
     }
 
-    pub fn point_on_line_with_min_distance_to_self_2d(
-        &self,
-        line: &Line<T>,
-    ) -> (T, Vertex<T>) {
+    pub fn point_on_line_with_min_distance_to_self_2d(&self, line: &Line<T>) -> (T, Vertex<T>) {
         let r = line.direction;
 
         let s1 = self.x();
@@ -94,6 +90,19 @@ where
         (t, line.original_x1 + r * t)
     }
 
+    pub fn normal(&self) -> Self {
+        Vertex {
+            position: [-self.y(), self.x(), T::zero()],
+            color: [0.0, 0.0, 0.0, 0.0],
+            id: self.id,
+        }
+    }
+}
+
+impl<T> Vertex<T>
+where
+    T: Copy,
+{
     pub fn x(&self) -> T {
         self.position[0]
     }
@@ -116,14 +125,6 @@ where
 
     pub fn set_z(&mut self, z: T) {
         self.position[2] = z;
-    }
-
-    pub fn normal(&self) -> Self {
-        Vertex {
-            position: [-self.y(), self.x(), T::zero()],
-            color: [0.0, 0.0, 0.0, 0.0],
-            id: self.id,
-        }
     }
 }
 
@@ -183,7 +184,9 @@ where
 }
 
 impl<T> Neg for Vertex<T>
-where T: Float + Copy{
+where
+    T: Float + Copy,
+{
     type Output = Vertex<T>;
     fn neg(self) -> Self::Output {
         self * -T::one()
@@ -192,6 +195,7 @@ where T: Float + Copy{
 
 impl<T> Eq for Vertex<T> where T: Float {}
 
+#[allow(clippy::derive_ord_xor_partial_ord)]
 impl<T> Ord for Vertex<T>
 where
     T: Float,
@@ -202,24 +206,36 @@ where
 }
 
 impl<T> From<(T, T)> for Vertex<T>
-where T: Float + Copy {
+where
+    T: Float + Copy,
+{
     fn from(value: (T, T)) -> Self {
         Self {
             id: 0,
             position: [value.0, value.1, T::zero()],
-            color:[0.0, 0.0, 0.0, 0.0],
+            color: [0.0, 0.0, 0.0, 0.0],
         }
     }
 }
 
-
 impl<T> From<(T, T, T)> for Vertex<T>
-where T: Float + Copy {
+where
+    T: Float + Copy,
+{
     fn from(value: (T, T, T)) -> Self {
         Self {
             id: 0,
             position: [value.0, value.1, value.2],
-            color:[0.0, 0.0, 0.0,0.0],
+            color: [0.0, 0.0, 0.0, 0.0],
         }
+    }
+}
+
+impl<T> Debug for Vertex<T>
+where
+    T: Debug + Copy,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({:?}, {:?})", self.x(), self.y())
     }
 }

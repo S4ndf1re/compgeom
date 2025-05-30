@@ -1,11 +1,16 @@
+use crate::basic_rendering::live_renderable::ZDepth;
 use crate::basic_rendering::renderable::Renderable;
 use crate::basic_rendering::util::{create_shader, fit_all_polygons, get_gl_string};
 use crate::objects::polygon::Polygon;
 use glutin::display::GlDisplay;
 use num::Float;
+use std::cell::RefCell;
 use std::ffi::CString;
 use std::fmt::Debug;
+use std::marker::PhantomData;
 use std::ops::Deref;
+
+use super::live_renderable::LiveRenderable;
 
 #[derive(Clone, Copy)]
 pub enum DrawMode {
@@ -13,30 +18,29 @@ pub enum DrawMode {
     Overlap,
 }
 
-pub struct Renderer {
+pub struct Renderer<'l, T, L>
+where
+    T: Debug + Copy,
+    L: LiveRenderable<T>,
+{
     program: gl::types::GLuint,
     gl: crate::gl::Gl,
-    renderable: Vec<Renderable>,
+    renderable: &'l RefCell<L>,
+    draw_mode: DrawMode,
+    _data: PhantomData<T>,
 }
 
-impl Renderer {
-    pub fn new<
-        T: Float + Debug + Copy + 'static,
-        D: GlDisplay,
-        P: AsRef<[(gl::types::GLenum, Polygon<T>)]>,
-    >(
+impl<'l, T, L> Renderer<'l, T, L>
+where
+    T: Float + Debug + Copy + 'static,
+    L: LiveRenderable<T>,
+{
+    pub fn new<D: GlDisplay>(
         gl_display: &D,
         draw_mode: DrawMode,
-        polygons: P,
+        polygons: &'l RefCell<L>,
     ) -> Self {
         unsafe {
-            let mut polygons: Vec<(gl::types::GLenum, Polygon<T>)> = polygons.as_ref().to_vec();
-            let mut bounds = fit_all_polygons(draw_mode, &mut polygons);
-            bounds.0 = bounds.0 - T::one();
-            bounds.1 = bounds.1 + T::one();
-            bounds.2 = bounds.2 - T::one();
-            bounds.3 = bounds.3 + T::one();
-
             let gl = crate::gl::Gl::load_with(|symbol| {
                 let symbol = CString::new(symbol).unwrap();
                 gl_display.get_proc_address(symbol.as_c_str()).cast()
@@ -70,11 +74,40 @@ impl Renderer {
             gl.FrontFace(gl::CCW);
             gl.CullFace(gl::FRONT);
 
-            let ortho_projection = gl.GetUniformLocation(program, b"ortho\0".as_ptr() as *const _);
-            assert!(ortho_projection >= 0);
-
             gl.DeleteShader(vertex_shader);
             gl.DeleteShader(fragment_shader);
+
+            Self {
+                program,
+                gl,
+                draw_mode,
+                renderable: polygons,
+                _data: PhantomData {},
+            }
+        }
+    }
+
+    pub fn draw(&self) {
+        unsafe {
+            self.gl.ClearColor(0.0, 0.0, 0.0, 1.0);
+            self.gl.Clear(gl::COLOR_BUFFER_BIT);
+
+            let mut polygons: Vec<(ZDepth, gl::types::GLenum, Polygon<T>)> =
+                self.renderable.borrow().clone().to_renderable();
+
+            // Sort that smaller z-depth value will get rendered first
+            polygons.sort_by(|a, b| a.0.cmp(&b.0));
+
+            let mut bounds = fit_all_polygons(self.draw_mode, &mut polygons);
+            bounds.0 = bounds.0 - T::one();
+            bounds.1 = bounds.1 + T::one();
+            bounds.2 = bounds.2 - T::one();
+            bounds.3 = bounds.3 + T::one();
+
+            let ortho_projection = self
+                .gl
+                .GetUniformLocation(self.program, b"ortho\0".as_ptr() as *const _);
+            assert!(ortho_projection >= 0);
 
             let (left, right, bottom, top) = (
                 bounds.0.to_f32().unwrap(),
@@ -93,26 +126,15 @@ impl Renderer {
                  0.0,                       0.0,                    0.0,                1.0];
 
             // NOTE(Jan): This has to get transposed, since opengl uses column first storage, instead of row first
-            gl.UniformMatrix4fv(ortho_projection, 1, 1, matrix.as_ptr());
+            self.gl
+                .UniformMatrix4fv(ortho_projection, 1, 1, matrix.as_ptr());
 
-            Self {
-                program,
-                gl,
-                renderable: polygons
-                    .iter()
-                    .map(|p| Renderable::new(gl_display, program, &p.1, p.0))
-                    .collect(),
+            let renderables = polygons
+                .iter()
+                .map(|p| Renderable::new(self.gl.clone(), self.program, &p.2, p.1));
+            for renderable in renderables {
+                renderable.render();
             }
-        }
-    }
-
-    pub fn draw(&self) {
-        unsafe {
-            self.gl.ClearColor(0.0, 0.0, 0.0, 1.0);
-            self.gl.Clear(gl::COLOR_BUFFER_BIT);
-        }
-        for renderable in &self.renderable {
-            renderable.render();
         }
     }
 
@@ -123,7 +145,11 @@ impl Renderer {
     }
 }
 
-impl Deref for Renderer {
+impl<'l, T, L> Deref for Renderer<'l, T, L>
+where
+    T: Copy + Debug,
+    L: LiveRenderable<T>,
+{
     type Target = crate::gl::Gl;
 
     fn deref(&self) -> &Self::Target {
@@ -131,7 +157,11 @@ impl Deref for Renderer {
     }
 }
 
-impl Drop for Renderer {
+impl<'l, T, L> Drop for Renderer<'l, T, L>
+where
+    T: Copy + Debug,
+    L: LiveRenderable<T>,
+{
     fn drop(&mut self) {
         unsafe {
             self.gl.DeleteProgram(self.program);

@@ -1,10 +1,10 @@
+use crate::gl::Gl;
 use crate::objects::polygon::Polygon;
 use crate::objects::vertex::{Position, Vertex};
 use gl::types::GLsizei;
-use glutin::display::GlDisplay;
 use num::Float;
-use std::ffi::CString;
 use std::fmt::Debug;
+
 
 pub struct Renderable {
     gl: crate::gl::Gl,
@@ -16,18 +16,13 @@ pub struct Renderable {
 }
 
 impl Renderable {
-    pub fn new<T: Float + Debug + Copy + 'static, D: GlDisplay>(
-        gl_display: &D,
+    pub fn new<T: Float + Debug + Copy + 'static>(
+        gl: Gl,
         program: gl::types::GLuint,
         polygon: &Polygon<T>,
         mode: gl::types::GLenum,
     ) -> Self {
         unsafe {
-            let gl = crate::gl::Gl::load_with(|symbol| {
-                let symbol = CString::new(symbol).unwrap();
-                gl_display.get_proc_address(symbol.as_c_str()).cast()
-            });
-
             gl.UseProgram(program);
 
             let mut vao = std::mem::zeroed();

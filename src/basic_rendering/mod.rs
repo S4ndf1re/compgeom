@@ -3,3 +3,4 @@ pub mod appstate;
 pub mod renderable;
 pub mod renderer;
 pub mod util;
+pub mod live_renderable;
