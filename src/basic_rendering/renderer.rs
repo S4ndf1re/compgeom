@@ -71,7 +71,7 @@ where
 
             gl.Enable(gl::PROGRAM_POINT_SIZE);
             gl.Enable(gl::CULL_FACE);
-            gl.FrontFace(gl::CCW);
+            gl.FrontFace(gl::CW);
             gl.CullFace(gl::FRONT);
 
             gl.DeleteShader(vertex_shader);

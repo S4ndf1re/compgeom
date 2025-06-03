@@ -1,10 +1,12 @@
 use crate::algorithm::graham_scan::graham_scan::graham_scan_vorlesungsfolie;
 use crate::objects::line::Line;
-use crate::objects::vertex::{Color, Vertex};
+use crate::objects::vertex::Vertex;
 use num::Float;
 use std::collections::HashSet;
 use std::fmt::{Debug, Display, Formatter};
 use std::hash::Hash;
+
+use super::color::Color;
 
 #[derive(Clone, Debug)]
 pub struct Polygon<T>
@@ -149,9 +151,10 @@ where
     }
 }
 
-
 impl<T> From<Line<T>> for Polygon<T>
-where T: Float + Copy + Debug {
+where
+    T: Float + Copy + Debug,
+{
     fn from(value: Line<T>) -> Self {
         Self::new(vec![value.x1, value.x2])
     }

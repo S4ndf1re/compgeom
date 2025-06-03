@@ -1,18 +1,23 @@
 use std::{
     collections::VecDeque,
-    fmt::Debug,
-    time::{SystemTime, SystemTimeError},
+    fmt::{Debug, Display},
+    time::SystemTime,
 };
 
 use num::Float;
 use winit::{
     event::KeyEvent,
-    keyboard::{Key, KeyCode, NamedKey, PhysicalKey},
+    keyboard::{KeyCode, PhysicalKey},
 };
 
 use crate::{
     basic_rendering::live_renderable::{LiveRenderable, ZDepth},
-    objects::{aabb_rect::AaBbRect, polygon::Polygon, vertex::Vertex},
+    objects::{aabb_rect::AaBbRect, color::GLOBAL_COLOR_GENERATOR, vertex::Vertex},
+};
+
+use super::{
+    node::{Node, convert_to_visual_nodes},
+    range_query::RangeQuery,
 };
 
 #[derive(Clone, Debug)]
@@ -139,121 +144,6 @@ where
     }
 }
 
-#[derive(Clone)]
-pub struct Node<T> {
-    left: Option<Box<Node<T>>>,
-    right: Option<Box<Node<T>>>,
-    value: Option<T>,
-    is_y: bool,
-    selected: bool,
-}
-
-pub fn convert_to_visual_nodes<'n, T: Float + Copy>(
-    root: &'n Node<Vertex<T>>,
-    rect: AaBbRect<T>,
-    list: &mut Vec<VisualisedNode<'n, T>>,
-) {
-    if root.value.is_none() {
-        return;
-    }
-
-    list.push(VisualisedNode::new(root, rect.clone()));
-    let (left, right) = if root.is_y {
-        rect.split_by(root.value.unwrap().y(), !root.is_y)
-    } else {
-        rect.split_by(root.value.unwrap().x(), !root.is_y)
-    };
-
-    if let Some(left_child) = &root.left
-        && let Some(left_box) = left
-    {
-        convert_to_visual_nodes(left_child.as_ref(), left_box, list);
-    }
-
-    if let Some(right_child) = &root.right
-        && let Some(right_box) = right
-    {
-        convert_to_visual_nodes(right_child.as_ref(), right_box, list);
-    }
-}
-
-impl<T> Default for Node<T> {
-    fn default() -> Self {
-        Self {
-            left: None,
-            right: None,
-            value: None,
-            is_y: false,
-            selected: false,
-        }
-    }
-}
-
-#[derive(Clone)]
-pub struct VisualisedNode<'n, T> {
-    node: &'n Node<Vertex<T>>,
-    rect: AaBbRect<T>,
-}
-
-impl<'n, T> VisualisedNode<'n, T>
-where
-    T: Copy + Float,
-{
-    pub fn new(node: &'n Node<Vertex<T>>, rect: AaBbRect<T>) -> Self {
-        Self { node, rect }
-    }
-}
-
-impl<'n, T> LiveRenderable<T> for VisualisedNode<'n, T>
-where
-    T: Copy + Debug + Float,
-{
-    fn to_renderable(self) -> Vec<(ZDepth, gl::types::GLenum, Polygon<T>)> {
-        if self.node.value.is_none() {
-            return vec![];
-        }
-
-        let mut objects = Vec::with_capacity(2);
-
-        let (start, end) = if self.node.is_y {
-            let start: Vertex<_> = (self.rect.x, self.node.value.unwrap().y()).into();
-            let end: Vertex<_> = (self.rect.x + self.rect.w, self.node.value.unwrap().y()).into();
-            (start, end)
-        } else {
-            let start: Vertex<_> = (self.node.value.unwrap().x(), self.rect.y).into();
-            let end: Vertex<_> = (self.node.value.unwrap().x(), self.rect.y + self.rect.h).into();
-            (start, end)
-        };
-
-        let mut polygon = Polygon::new(vec![start, end]);
-        let mut depth = 1;
-        polygon.set_color([1.0, 1.0, 1.0, 1.0]);
-        if self.node.selected {
-            polygon.set_color([1.0, 1.0, 0.0, 1.0]);
-            depth = 3;
-        }
-        objects.push((depth, gl::LINES, polygon));
-
-        let mut polygon = Polygon::new(vec![self.node.value.unwrap()]);
-        polygon.set_color([1.0, 0.0, 0.0, 1.0]);
-        if self.node.selected {
-            polygon.set_color([1.0, 0.0, 1.0, 1.0]);
-        }
-        objects.push((4, gl::POINTS, polygon));
-
-        let polygons = self.rect.to_renderable();
-        let (mut depth, mode, mut polygon) = polygons.first().unwrap().clone();
-        polygon.set_color([0.3, 0.3, 0.3, 1.0]);
-        if self.node.selected {
-            depth = 2;
-            polygon.set_color([0.0, 1.0, 0.0, 1.0]);
-        }
-        objects.push((depth, mode, polygon));
-
-        objects
-    }
-}
-
 pub enum Step {
     Left,
     Right,
@@ -268,17 +158,22 @@ where
     root: Box<Node<Vertex<T>>>,
     current_selected: Vec<*const Node<Vertex<T>>>,
     last_pressed: SystemTime,
+    last_query: Option<RangeQuery<T>>,
 }
 
 impl<T> KdTree<T>
 where
-    T: Float + Copy + Debug,
+    T: Float + Copy + Debug + Display,
 {
     pub fn build(points: &[Vertex<T>]) -> Self {
         let mut this = Self {
-            root: Box::default(),
+            root: Box::new(Node {
+                id: 1,
+                ..Default::default()
+            }),
             current_selected: vec![],
             last_pressed: SystemTime::now(),
+            last_query: None,
         };
 
         this.current_selected.push(Box::as_ptr(&this.root));
@@ -305,8 +200,14 @@ where
             node.value = Some(median);
             node.is_y = by_y;
 
-            let mut node_left: Node<Vertex<T>> = Default::default();
-            let mut node_right: Node<Vertex<T>> = Default::default();
+            let mut node_left: Node<Vertex<T>> = Node {
+                id: 2 * node.id,
+                ..Default::default()
+            };
+            let mut node_right: Node<Vertex<T>> = Node {
+                id: 2 * node.id + 1,
+                ..Default::default()
+            };
 
             Self::construct_tree(left, &mut node_left, !by_y);
             Self::construct_tree(right, &mut node_right, !by_y);
@@ -319,6 +220,62 @@ where
                 node.right = Some(Box::new(node_right));
             }
         }
+    }
+
+    fn range_query_rec(node: &mut Node<Vertex<T>>, query: &RangeQuery<T>) -> Vec<Vertex<T>> {
+        println!("visited node {}", node.id);
+        if node.value.is_none() {
+            return vec![];
+        }
+
+        let ((l, r), coord) = if node.is_y {
+            (query.y_range.into(), node.value.unwrap().y())
+        } else {
+            (query.x_range.into(), node.value.unwrap().x())
+        };
+
+        let mut output = vec![];
+
+        node.range_query_result = false;
+        if query.is_contained((&node.value.unwrap().x(), &node.value.unwrap().y())) {
+            println!("found point {:?}", node.value.unwrap());
+            node.range_query_result = true;
+            output.push(node.value.unwrap());
+        }
+
+        // Reset children to not visited
+        if node.left.is_some() {
+            node.left.as_mut().unwrap().range_query_visited = false;
+        }
+
+        if node.right.is_some() {
+            node.right.as_mut().unwrap().range_query_visited = false;
+        }
+
+        if l < coord && node.left.is_some() {
+            // Node was visisted
+            println!("visiting left node {}", node.left.as_ref().unwrap().id);
+            node.left.as_mut().unwrap().range_query_visited = true;
+            output.extend(Self::range_query_rec(node.left.as_mut().unwrap(), query));
+        }
+
+        if coord < r && node.right.is_some() {
+            println!("visiting right node {}", node.right.as_ref().unwrap().id);
+            node.right.as_mut().unwrap().range_query_visited = true;
+            output.extend(Self::range_query_rec(node.right.as_mut().unwrap(), query));
+        }
+
+        output
+    }
+
+    pub fn range_query(&mut self, query: RangeQuery<T>) -> Vec<Vertex<T>> {
+        self.last_query = Some(query);
+
+        if self.root.value.is_none() {
+            return vec![];
+        }
+
+        Self::range_query_rec(&mut self.root, &query)
     }
 
     pub fn step(&mut self, step: Step) {
@@ -381,7 +338,7 @@ where
 
 impl<T> LiveRenderable<T> for KdTree<T>
 where
-    T: Copy + Debug + Float,
+    T: Copy + Debug + Float + Display,
 {
     fn to_renderable(
         self,
@@ -390,6 +347,7 @@ where
         gl::types::GLenum,
         crate::objects::polygon::Polygon<T>,
     )> {
+        GLOBAL_COLOR_GENERATOR.reset();
         let mut objects = vec![];
 
         let mut nodes_to_visit = VecDeque::new();
@@ -431,6 +389,10 @@ where
             .set_color([0.3, 0.3, 0.3, 1.0]);
 
         objects.extend(bounding_rect_render);
+
+        if let Some(query) = self.last_query {
+            objects.extend(query.to_renderable());
+        }
 
         objects
     }

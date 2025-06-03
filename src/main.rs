@@ -10,6 +10,7 @@ use crate::algorithm::sweep_line::context::IntersectionMode;
 use crate::basic_rendering::renderer::DrawMode;
 use crate::objects::polygon::Polygon;
 use algorithm::bsp::{PointOrientation, generate_points, line_decider};
+use algorithm::kd_tree::range_query::RangeQuery;
 use algorithm::kd_tree::tree::KdTree;
 use algorithm::sweep_line::sweep_line_algo::sweep_line_intersections;
 use basic_rendering::app::App;
@@ -152,7 +153,15 @@ fn bsp_task() -> Result<(), Box<dyn Error>> {
 fn kd_tree_task() -> Result<(), Box<dyn Error>> {
     let (points, _) = load_polygon_with_hull::<OrderedFloat<f32>>("assets/circularPoints20.obj");
 
-    let tree = KdTree::build(&points.vertices);
+    let mut tree = KdTree::build(&points.vertices);
+    let result = tree.range_query(
+        (
+            (OrderedFloat(5.0), OrderedFloat(9.0)),
+            (OrderedFloat(0.0), OrderedFloat(12.0)),
+        )
+            .into(),
+    );
+    println!("Result: {result:?}");
 
     let event_loop = winit::event_loop::EventLoop::new().unwrap();
 

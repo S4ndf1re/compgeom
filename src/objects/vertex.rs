@@ -4,8 +4,9 @@ use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::ops::{Add, Mul, Neg, Sub};
 
+use super::color::Color;
+
 pub type Position<T> = [T; 3];
-pub type Color = [f32; 4];
 
 #[repr(C, packed)]
 #[derive(Clone, Copy, PartialOrd, PartialEq)]
