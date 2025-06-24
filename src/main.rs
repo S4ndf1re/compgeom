@@ -10,17 +10,21 @@ use crate::algorithm::sweep_line::context::IntersectionMode;
 use crate::basic_rendering::renderer::DrawMode;
 use crate::objects::polygon::Polygon;
 use algorithm::bsp::{PointOrientation, generate_points, line_decider};
-use algorithm::kd_tree::range_query::RangeQuery;
 use algorithm::kd_tree::tree::KdTree;
 use algorithm::sweep_line::sweep_line_algo::sweep_line_intersections;
+use algorithm::tesselation::{
+    classify_verticies, classify_verticies_non_pointer, partition_to_y_monotone,
+};
 use basic_rendering::app::App;
 use basic_rendering::util::window_attributes;
 use glutin::config::ConfigTemplateBuilder;
 use glutin_winit::DisplayBuilder;
 use num::Float;
+use objects::color::GLOBAL_COLOR_GENERATOR;
 use objects::line::Line;
 use objects::obj_file_manager::ObjFileManager;
 use ordered_float::OrderedFloat;
+use rand::seq::IndexedRandom;
 use std::cell::RefCell;
 use std::error::Error;
 use std::fmt::Debug;
@@ -180,9 +184,54 @@ fn kd_tree_task() -> Result<(), Box<dyn Error>> {
     app.exit_state
 }
 
+fn triangulation_task() -> Result<(), Box<dyn Error>> {
+    let (mut points, _) =
+        load_polygon_with_hull::<OrderedFloat<f32>>("assets/PNonConvexSimple1.obj");
+    // points.flip_y();
+    points.ensure_ccw();
+
+    let colored_points = classify_verticies_non_pointer(&points.vertices)
+        .iter()
+        .map(|(vert, vtype)| {
+            let mut polygon = Polygon::new(vec![*vert]);
+            polygon.set_color((*vtype).into());
+            (3, gl::POINTS, polygon)
+        })
+        .collect::<Vec<_>>();
+
+    let result = partition_to_y_monotone(&points.vertices);
+    println!("Result (len: {}): {result:?}", result.len());
+    let mut polygons = result
+        .iter()
+        .map(|v| {
+            let mut polygon = Polygon::new(v.clone());
+            polygon.set_color(GLOBAL_COLOR_GENERATOR.next_color(1.0));
+            (0, gl::LINE_LOOP, polygon)
+        })
+        .collect::<Vec<_>>();
+    polygons.extend(colored_points);
+
+    let event_loop = winit::event_loop::EventLoop::new().unwrap();
+
+    // make sure, that on macos, transparency is enabled. Linux and Windows may allow for multiple configurations to be loaded, however, macos only provieds one configuration
+    let template = ConfigTemplateBuilder::new()
+        .with_alpha_size(8)
+        .with_transparency(cfg!(cgl_backend));
+
+    // Create a display
+    let display_builder = DisplayBuilder::new().with_window_attributes(Some(window_attributes()));
+
+    let tree = RefCell::new(polygons);
+    let mut app = App::new(template, display_builder, &tree, DrawMode::Overlap);
+    event_loop.run_app(&mut app)?;
+
+    app.exit_state
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     // sweep_line_task()
     // bsp_task()
-    kd_tree_task()
+    // kd_tree_task()
     // unimplemented!()
+    triangulation_task()
 }

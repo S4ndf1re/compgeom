@@ -1,6 +1,9 @@
 use crate::objects::polygon::Polygon;
 use crate::objects::vertex::Vertex;
 use num::Float;
+use std::collections::HashMap;
+use std::fs::File;
+use std::io::Write;
 use std::str::FromStr;
 use std::{fmt, fs};
 
@@ -49,6 +52,37 @@ where
         }
 
         (vertices, polygons)
+    }
+
+    /// It is important the the ids are correct
+    pub fn write_file(path: &str, polygons: &Vec<Polygon<T>>) {
+        let mut vertex_ids = HashMap::<usize, Vertex<T>>::new();
+
+        for p in polygons {
+            for v in &p.vertices {
+                vertex_ids.insert(v.id, *v);
+            }
+        }
+
+        let mut keys = vertex_ids.keys().collect::<Vec<_>>();
+        keys.sort();
+
+        let mut file = File::create(path).unwrap();
+        for k in keys {
+            let v = vertex_ids[k];
+            let _ = writeln!(&mut file, "v {:?} {:?}", v.x(), v.y());
+        }
+
+        for p in polygons {
+            let indizes = p
+                .vertices
+                .iter()
+                .map(|v| v.id + 1)
+                .map(|v| v.to_string())
+                .collect::<Vec<_>>()
+                .join(" ");
+            let _ = writeln!(&mut file, "f {indizes}");
+        }
     }
 
     pub fn new(path: &str) -> ObjFileManager<T> {

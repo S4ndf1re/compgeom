@@ -99,6 +99,39 @@ where
     pub fn get_idx(&self, idx: usize) -> Option<Vertex<T>> {
         self.vertices.get(idx).map(|o| o.clone())
     }
+
+    pub fn is_cw(&self) -> bool {
+        let n = self.vertices.len();
+        let mut sum = T::zero();
+        for i in 0..n {
+            let v = self.vertices[(i + 1) % n];
+            let u = self.vertices[i];
+            sum = sum + (v.x() - u.x()) * (v.y() + u.x());
+        }
+        sum.is_sign_positive()
+    }
+
+    pub fn ensure_cw(&mut self) {
+        if self.is_cw() {
+            return;
+        }
+
+        self.vertices = std::mem::take(&mut self.vertices)
+            .into_iter()
+            .rev()
+            .collect();
+    }
+
+    pub fn ensure_ccw(&mut self) {
+        if !self.is_cw() {
+            return;
+        }
+
+        self.vertices = std::mem::take(&mut self.vertices)
+            .into_iter()
+            .rev()
+            .collect();
+    }
 }
 
 impl<T> Polygon<T>
@@ -133,6 +166,18 @@ where
         }
 
         Some(inner_points)
+    }
+
+    pub fn flip_y(&mut self) {
+        let max_y = self
+            .vertices
+            .iter()
+            .max_by(|a, b| a.y().cmp(&b.y()))
+            .unwrap()
+            .y();
+        for v in self.vertices.iter_mut() {
+            v.position[1] = max_y - v.y();
+        }
     }
 }
 

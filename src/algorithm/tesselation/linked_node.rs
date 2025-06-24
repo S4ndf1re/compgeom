@@ -1,0 +1,126 @@
+use num::Float;
+
+use crate::objects::{color::Color, vertex::Vertex};
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
+pub enum VertexType {
+    Start,
+    Split,
+    End,
+    Merge,
+    Regular,
+}
+
+impl From<VertexType> for Color {
+    fn from(value: VertexType) -> Self {
+        match value {
+            VertexType::Start => [0.0, 1.0, 0.0, 1.0],
+            VertexType::Split => [0.0, 0.0, 1.0, 1.0],
+            VertexType::End => [1.0, 0.0, 0.0, 1.0],
+            VertexType::Merge => [1.0, 0.0, 1.0, 1.0],
+            VertexType::Regular => [0.0, 1.0, 1.0, 1.0],
+        }
+    }
+}
+
+pub struct LinkedVertex<T: Float + Copy> {
+    pub vertex: Vertex<T>,
+    pub vert_type: VertexType,
+    pub prev: Option<*const LinkedVertex<T>>,
+    pub next: Option<*const LinkedVertex<T>>,
+    pub visited: bool,
+}
+
+impl<T: Float + Copy> LinkedVertex<T> {
+    fn new(vertex: Vertex<T>, vert_type: VertexType) -> *mut Self {
+        Box::into_raw(Box::new(Self {
+            vertex,
+            vert_type,
+            prev: None,
+            next: None,
+            visited: false,
+        }))
+    }
+
+    pub fn from_verticies(verticies: &[Vertex<T>]) -> Vec<*mut Self> {
+        assert!(verticies.len() >= 2);
+
+        let first = Self::new(verticies[0], VertexType::Regular);
+        let mut current = first;
+        let mut result = vec![first];
+
+        for i in 1..verticies.len() {
+            let node = Self::new(verticies[i], VertexType::Regular);
+            unsafe {
+                (*node).prev = Some(current);
+                (*current).next = Some(node);
+            }
+            current = node;
+            result.push(node);
+        }
+
+        unsafe {
+            (*first).prev = Some(current);
+            (*current).next = Some(first);
+        }
+
+        result
+    }
+
+    pub fn connect(node1: *mut Self, node2: *mut Self) {
+        unsafe {
+            (*node1).next = Some(node2);
+            (*node2).prev = Some(node1);
+        }
+    }
+
+    pub fn insert_between(mut node: *mut Self, mut next: *mut Self) -> (*mut Self, *mut Self) {
+        unsafe {
+            // let y1 = (*node).vertex.y();
+            // let y2 = (*next).vertex.y();
+            // if y1 < y2 {
+            //     std::mem::swap(&mut node, &mut next);
+            // }
+
+            let id1 = (*node).vertex.id;
+            let id2 = (*next).vertex.id;
+
+            println!("Inserting edge between {id1} and {id2}");
+            let new_sub_start = Self::new((*node).vertex, (*node).vert_type);
+            let new_sub_end = Self::new((*next).vertex, (*next).vert_type);
+
+            // Remove old connections and create subgraph
+            Self::connect(new_sub_start, (*node).next.unwrap() as *mut _);
+
+            Self::connect((*next).prev.unwrap() as *mut _, new_sub_end);
+
+            // Connect subgraph back together
+            Self::connect(new_sub_end, new_sub_start);
+
+            // Connect old graph back together
+            Self::connect(node, next);
+
+            (new_sub_start, new_sub_end)
+        }
+    }
+}
+
+impl<T: Float + Copy> Eq for LinkedVertex<T> {}
+
+impl<T: Float + Copy> PartialEq for LinkedVertex<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.vertex == other.vertex
+    }
+}
+
+impl<T: Float + Copy> Ord for LinkedVertex<T> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.vertex.cmp(&other.vertex)
+    }
+}
+
+impl<T: Float + Copy> PartialOrd for LinkedVertex<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.vertex.cmp(&other.vertex))
+    }
+}
