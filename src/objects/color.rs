@@ -9,27 +9,83 @@ pub const MAGENTA: Color = [1.0, 0.0, 1.0, 1.0];
 pub const YELLOW: Color = [1.0, 1.0, 0.0, 1.0];
 pub const CYAN: Color = [0.0, 1.0, 1.0, 1.0];
 pub const WHITE: Color = [1.0, 1.0, 1.0, 1.0];
-pub const COLORS: [Color; 6] = [RED, GREEN, BLUE, MAGENTA, YELLOW, CYAN];
+pub const ORANGE: Color = [1.0, 165.0 / 255.0, 0.0, 1.0]; // Orange
+pub const PURPLE: Color = [128.0 / 255.0, 0.0, 128.0 / 255.0, 1.0]; // Lila
+pub const BROWN: Color = [165.0 / 255.0, 42.0 / 255.0, 42.0 / 255.0, 1.0]; // Braun
+pub const GOLD: Color = [1.0, 215.0 / 255.0, 0.0, 1.0]; // Gold
+pub const TEAL: Color = [0.0, 128.0 / 255.0, 128.0 / 255.0, 1.0]; // Türkis
+pub const NAVY: Color = [0.0, 0.0, 128.0 / 255.0, 1.0]; // Marineblau
+pub const OLIVE: Color = [128.0 / 255.0, 128.0 / 255.0, 0.0, 1.0]; // Oliv
+pub const SALMON_RED: Color = [250.0 / 255.0, 128.0 / 255.0, 114.0 / 255.0, 1.0]; // Lachsrot
+pub const GERANIUM: Color = [207.0 / 255.0, 30.0 / 255.0, 39.0 / 255.0, 1.0]; // Geraniumrot
+pub const DARK_GREEN: Color = [0.0, 100.0 / 255.0, 0.0, 1.0]; // Dunkelgrün
+pub const GRAY: Color = [128.0 / 255.0, 128.0 / 255.0, 128.0 / 255.0, 1.0]; // Grau
+pub const DEEP_PINK: Color = [1.0, 20.0 / 255.0, 147.0 / 255.0, 1.0]; // Tiefes Pink
+pub const CRIMSON: Color = [220.0 / 255.0, 20.0 / 255.0, 60.0 / 255.0, 1.0]; // Karmesinrot
+pub const INDIGO: Color = [75.0 / 255.0, 0.0, 130.0 / 255.0, 1.0]; // Indigo
+pub const LIME_GREEN: Color = [50.0 / 255.0, 205.0 / 255.0, 50.0 / 255.0, 1.0]; // Limettengrün
+pub const DARK_SLATE_GRAY: Color = [47.0 / 255.0, 79.0 / 255.0, 79.0 / 255.0, 1.0]; // Dunkel-Schiefergrau
 
-// Pastell colors
-pub const PASTELL_DARKPURPLE: Color = [39.0 / 255.0, 40.0 / 255.0, 56.0 / 255.0, 1.0];
-pub const PASTELL_GRAYPURPLE: Color = [93.0 / 255.0, 83.0 / 255.0, 107.0 / 255.0, 1.0];
-pub const PASTELL_PURPLE: Color = [125.0 / 255.0, 107.0 / 255.0, 145.0 / 255.0, 1.0];
-pub const PASTELL_GRAY: Color = [152.0 / 255.0, 159.0 / 255.0, 206.0 / 255.0, 1.0];
-pub const PASTELL_BLUE: Color = [52.0 / 255.0, 127.0 / 255.0, 196.0 / 255.0, 1.0];
-pub const PASTELL_BLACK_BEAN: Color = [59.0 / 255.0, 13.0 / 255.0, 17.0 / 255.0, 1.0];
-pub const PASTELL_SLATE_GRAY: Color = [116.0 / 255.0, 131.0 / 255.0, 134.0 / 255.0, 1.0];
-pub const PASTELL_ENGLISH_VIOLET: Color = [76.0 / 255.0, 57.0 / 255.05, 87.0 / 255.0, 1.0];
+pub const COLORS: [Color; 22] = [
+    RED,
+    GREEN,
+    BLUE,
+    MAGENTA,
+    YELLOW,
+    CYAN,
+    ORANGE,
+    PURPLE,
+    BROWN,
+    GOLD,
+    TEAL,
+    NAVY,
+    OLIVE,
+    SALMON_RED,
+    GERANIUM,
+    DARK_GREEN,
+    GRAY,
+    DEEP_PINK,
+    CRIMSON,
+    INDIGO,
+    LIME_GREEN,
+    DARK_SLATE_GRAY,
+];
 
-pub const PASTELL_COLORS: [Color; 8] = [
-    PASTELL_DARKPURPLE,
-    PASTELL_GRAYPURPLE,
-    PASTELL_PURPLE,
-    PASTELL_BLACK_BEAN,
-    PASTELL_SLATE_GRAY,
-    PASTELL_ENGLISH_VIOLET,
-    PASTELL_GRAY,
-    PASTELL_BLUE,
+// Neue Pastellfarben
+pub const PASTELL_SOFT_PINK: Color = [1.0, 182.0 / 255.0, 193.0 / 255.0, 1.0];
+pub const PASTELL_LIGHT_BLUE: Color = [173.0 / 255.0, 216.0 / 255.0, 230.0 / 255.0, 1.0];
+pub const PASTELL_MINT_GREEN: Color = [152.0 / 255.0, 1.0, 152.0 / 255.0, 1.0];
+pub const PASTELL_PEACH: Color = [1.0, 218.0 / 255.0, 185.0 / 255.0, 1.0];
+pub const PASTELL_LAVENDER: Color = [230.0 / 255.0, 190.0 / 255.0, 1.0, 1.0];
+pub const PASTELL_LIGHT_YELLOW: Color = [1.0, 1.0, 184.0 / 255.0, 1.0];
+pub const PASTELL_SOFT_ORANGE: Color = [1.0, 204.0 / 255.0, 153.0 / 255.0, 1.0];
+pub const PASTELL_DUSTY_BLUE: Color = [119.0 / 255.0, 158.0 / 255.0, 203.0 / 255.0, 1.0];
+pub const PASTELL_PALE_GREEN: Color = [152.0 / 255.0, 251.0 / 255.0, 152.0 / 255.0, 1.0];
+pub const PASTELL_SALMON: Color = [1.0, 160.0 / 255.0, 122.0 / 255.0, 1.0];
+pub const PASTELL_SOFT_PURPLE: Color = [200.0 / 255.0, 162.0 / 255.0, 200.0 / 255.0, 1.0];
+pub const PASTELL_CREAM: Color = [1.0, 253.0 / 255.0, 208.0 / 255.0, 1.0];
+pub const PASTELL_LIGHT_CORAL: Color = [240.0 / 255.0, 128.0 / 255.0, 128.0 / 255.0, 1.0];
+pub const PASTELL_SOFT_TEAL: Color = [156.0 / 255.0, 220.0 / 255.0, 229.0 / 255.0, 1.0];
+pub const PASTELL_LIGHT_GREY: Color = [211.0 / 255.0, 211.0 / 255.0, 211.0 / 255.0, 1.0];
+pub const PASTELL_SOFT_MAUVE: Color = [188.0 / 255.0, 143.0 / 255.0, 143.0 / 255.0, 1.0];
+
+pub const PASTELL_COLORS: [Color; 16] = [
+    PASTELL_SOFT_PINK,
+    PASTELL_LIGHT_BLUE,
+    PASTELL_MINT_GREEN,
+    PASTELL_PEACH,
+    PASTELL_LAVENDER,
+    PASTELL_LIGHT_YELLOW,
+    PASTELL_SOFT_ORANGE,
+    PASTELL_DUSTY_BLUE,
+    PASTELL_PALE_GREEN,
+    PASTELL_SALMON,
+    PASTELL_SOFT_PURPLE,
+    PASTELL_CREAM,
+    PASTELL_LIGHT_CORAL,
+    PASTELL_SOFT_TEAL,
+    PASTELL_LIGHT_GREY,
+    PASTELL_SOFT_MAUVE,
 ];
 
 pub static GLOBAL_COLOR_GENERATOR: ColorGenerator = ColorGenerator {

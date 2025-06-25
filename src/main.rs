@@ -224,7 +224,7 @@ fn triangulation_task(task1: bool) -> Result<(), Box<dyn Error>> {
                 println!("Edges: {triangles:?}");
                 triangles.into_iter().map(|triangle| {
                     let mut polygon = Polygon::new(triangle);
-                    polygon.set_color(GLOBAL_COLOR_GENERATOR.next_color(1.0));
+                    polygon.set_color(GLOBAL_COLOR_GENERATOR.next_pastell_color(1.0));
                     (1, gl::TRIANGLES, polygon)
                 })
             })
