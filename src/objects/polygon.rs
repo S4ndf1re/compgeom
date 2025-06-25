@@ -104,11 +104,16 @@ where
         let n = self.vertices.len();
         let mut sum = T::zero();
         for i in 0..n {
-            let v = self.vertices[(i + 1) % n];
             let u = self.vertices[i];
-            sum = sum + (v.x() - u.x()) * (v.y() + u.x());
+            let v = self.vertices[(i + 1) % n];
+            sum = sum + (v.x() - u.x()) * (v.y() + u.y());
         }
+        println!("CW Sum {sum:?}");
         sum.is_sign_positive()
+    }
+
+    pub fn is_ccw(&self) -> bool {
+        !self.is_cw()
     }
 
     pub fn ensure_cw(&mut self) {
@@ -123,7 +128,7 @@ where
     }
 
     pub fn ensure_ccw(&mut self) {
-        if !self.is_cw() {
+        if self.is_ccw() {
             return;
         }
 

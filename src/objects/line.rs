@@ -34,7 +34,7 @@ impl<T> Line<T>
 where
     T: Float + Debug,
 {
-    pub fn new(id: usize, polygon_id: usize, x1: Vertex<T>,  x2: Vertex<T>) -> Self {
+    pub fn new(id: usize, polygon_id: usize, x1: Vertex<T>, x2: Vertex<T>) -> Self {
         let mut x1_corrected = x1;
         let mut x2_corrected = x2;
         let normal = (x2 - x1).normal();
@@ -44,9 +44,9 @@ where
         let direction_corrected = x2_corrected - x1_corrected;
 
         let hessen_normal = if x1 * normal >= T::zero() {
-            normal * (T::one()/normal.magnitude())
+            normal * (T::one() / normal.magnitude())
         } else {
-            -normal * (T::one()/normal.magnitude())
+            -normal * (T::one() / normal.magnitude())
         };
 
         Self {
@@ -82,6 +82,11 @@ where
         // x1_x + t * r_x = x
         let t = (x - self.x1.x()) / self.direction.x();
         t
+    }
+
+    pub fn get_x_for_y(&self, y: T) -> T {
+        let t = (y - self.x1.y()) / self.direction.y();
+        self.f(t).x()
     }
 
     pub fn f(&self, t: T) -> Vertex<T> {
@@ -233,7 +238,6 @@ where
         write!(f, "{}", self.id)
     }
 }
-
 
 impl<T> From<(Vertex<T>, Vertex<T>)> for Line<T>
 where

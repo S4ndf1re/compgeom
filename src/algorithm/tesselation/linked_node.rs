@@ -74,13 +74,25 @@ impl<T: Float + Copy> LinkedVertex<T> {
         }
     }
 
-    pub fn insert_between(mut node: *mut Self, mut next: *mut Self) -> (*mut Self, *mut Self) {
+    pub fn insert_between(
+        mut node: *mut Self,
+        mut next: *mut Self,
+        vert_type: VertexType,
+    ) -> (*mut Self, *mut Self) {
         unsafe {
-            // let y1 = (*node).vertex.y();
-            // let y2 = (*next).vertex.y();
-            // if y1 < y2 {
-            //     std::mem::swap(&mut node, &mut next);
-            // }
+            if vert_type == VertexType::Merge {
+                let y1 = (*node).vertex.y();
+                let y2 = (*next).vertex.y();
+                if y1 < y2 {
+                    std::mem::swap(&mut node, &mut next);
+                }
+            } else if vert_type == VertexType::Split {
+                let y1 = (*node).vertex.y();
+                let y2 = (*next).vertex.y();
+                if y1 > y2 {
+                    std::mem::swap(&mut node, &mut next);
+                }
+            }
 
             let id1 = (*node).vertex.id;
             let id2 = (*next).vertex.id;

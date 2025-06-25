@@ -13,7 +13,7 @@ use algorithm::bsp::{PointOrientation, generate_points, line_decider};
 use algorithm::kd_tree::tree::KdTree;
 use algorithm::sweep_line::sweep_line_algo::sweep_line_intersections;
 use algorithm::tesselation::{
-    classify_verticies, classify_verticies_non_pointer, partition_to_y_monotone,
+    classify_verticies_non_pointer, partition_to_y_monotone, triangulate_y_monotone_polygon,
 };
 use basic_rendering::app::App;
 use basic_rendering::util::window_attributes;
@@ -184,9 +184,9 @@ fn kd_tree_task() -> Result<(), Box<dyn Error>> {
     app.exit_state
 }
 
-fn triangulation_task() -> Result<(), Box<dyn Error>> {
+fn triangulation_task(task1: bool) -> Result<(), Box<dyn Error>> {
     let (mut points, _) =
-        load_polygon_with_hull::<OrderedFloat<f32>>("assets/PNonConvexSimple1.obj");
+        load_polygon_with_hull::<OrderedFloat<f32>>("assets/PNonConvexSimple2.obj");
     // points.flip_y();
     points.ensure_ccw();
 
@@ -206,10 +206,35 @@ fn triangulation_task() -> Result<(), Box<dyn Error>> {
         .map(|v| {
             let mut polygon = Polygon::new(v.clone());
             polygon.set_color(GLOBAL_COLOR_GENERATOR.next_color(1.0));
-            (0, gl::LINE_LOOP, polygon)
+            (2, gl::LINE_LOOP, polygon)
         })
         .collect::<Vec<_>>();
+
+    if task1 {
+        let to_write = polygons.iter().map(|t| t.2.clone()).collect::<Vec<_>>();
+        ObjFileManager::write_file("output.obj", &to_write);
+    }
     polygons.extend(colored_points);
+
+    if !task1 {
+        let triangles = result
+            .iter()
+            .flat_map(|verticies| {
+                let triangles = triangulate_y_monotone_polygon(verticies);
+                println!("Edges: {triangles:?}");
+                triangles.into_iter().map(|triangle| {
+                    let mut polygon = Polygon::new(triangle);
+                    polygon.set_color(GLOBAL_COLOR_GENERATOR.next_color(1.0));
+                    (1, gl::TRIANGLES, polygon)
+                })
+            })
+            .collect::<Vec<_>>();
+
+        let to_write = triangles.iter().map(|t| t.2.clone()).collect::<Vec<_>>();
+        ObjFileManager::write_file("output.obj", &to_write);
+
+        polygons.extend(triangles);
+    }
 
     let event_loop = winit::event_loop::EventLoop::new().unwrap();
 
@@ -233,5 +258,5 @@ fn main() -> Result<(), Box<dyn Error>> {
     // bsp_task()
     // kd_tree_task()
     // unimplemented!()
-    triangulation_task()
+    triangulation_task(true)
 }

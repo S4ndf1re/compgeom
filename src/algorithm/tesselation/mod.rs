@@ -1,16 +1,13 @@
+mod helper;
 pub mod linked_node;
 
-use std::{
-    cell::RefCell,
-    collections::{BTreeMap, BinaryHeap},
-    fmt::Debug,
-    rc::Rc,
-};
+use std::{collections::BinaryHeap, fmt::Debug};
 
+use helper::Helper;
 use linked_node::{LinkedVertex, VertexType};
 use num::Float;
 
-use crate::{algorithm::util::is_left_turn, objects::vertex::Vertex};
+use crate::objects::{polygon::Polygon, vertex::Vertex};
 
 use super::util::is_right_turn;
 
@@ -122,31 +119,12 @@ fn is_inner_right<T: Float + Copy + Debug + Ord>(vertex: *mut LinkedVertex<T>) -
     unsafe { (*(*vertex).prev.unwrap()).vertex.y() > (*vertex).vertex.y() }
 }
 
-fn helper<T: Float + Copy + Debug>(
-    key: &usize,
-    tree: &BTreeMap<usize, usize>,
-    verticies: &[*mut LinkedVertex<T>],
-) -> usize {
-    if let Some(value) = tree.get(key) {
-        *value
-    } else {
-        unsafe {
-            if (*verticies[*key]).vertex.y() > (*(*verticies[*key]).next.unwrap()).vertex.y() {
-                (*verticies[*key]).vertex.id
-            } else {
-                (*(*verticies[*key]).next.unwrap()).vertex.id
-            }
-        }
-    }
-}
-
 /// Partition a list of verticies into a list of indicies. Each sublist contains a single
 /// y-monotone polygon
 pub fn partition_to_y_monotone<T: Float + Copy + Debug + Ord>(
     verticies: &[Vertex<T>],
 ) -> Vec<Vec<Vertex<T>>> {
-    let mut edges = Vec::with_capacity(verticies.len());
-    let mut helper_tree = BTreeMap::new();
+    let mut helper = Helper::new();
 
     // assure, that the numbering starts at first idx
     let mut verticies = verticies.to_owned();
@@ -164,9 +142,6 @@ pub fn partition_to_y_monotone<T: Float + Copy + Debug + Ord>(
     }
 
     let mut verticies = LinkedVertex::from_verticies(&verticies);
-    for i in 0..n {
-        edges.push((i, verticies[i], verticies[(i + 1) % n]));
-    }
 
     classify_verticies(&verticies);
 
@@ -185,86 +160,105 @@ pub fn partition_to_y_monotone<T: Float + Copy + Debug + Ord>(
                 "Iterating over vertex with id: {id} of type: {:?}",
                 (*v).vert_type
             );
-
-            println!("Tree before: {helper_tree:?}");
+            println!("State before: {helper:?}");
 
             match (*v).vert_type {
                 VertexType::Start => {
-                    helper_tree.insert(id, id);
+                    helper.insert_helper_and_edge(id, id, &verticies);
                 }
                 VertexType::End => {
-                    if (*verticies[helper(&(id - 1), &helper_tree, &verticies)]).vert_type
-                        == VertexType::Merge
-                    {
-                        let (temp1, temp2) =
-                            LinkedVertex::insert_between(v, verticies[helper_tree[&(id - 1)]]);
+                    if (*verticies[helper.helper(id - 1)]).vert_type == VertexType::Merge {
+                        // edges.push((
+                        //     (*v).vertex.id,
+                        //     (*verticies[helper.helper(id - 1)]).vertex.id,
+                        // ));
+                        let (temp1, temp2) = LinkedVertex::insert_between(
+                            verticies[helper.helper(id - 1)],
+                            v,
+                            VertexType::Merge,
+                        );
                         verticies.push(temp1);
                         verticies.push(temp2);
                     }
-                    helper_tree.remove(&(id - 1));
+
+                    helper.remove_edge(id - 1, &verticies);
                 }
                 VertexType::Split => {
-                    let lesser_edge_range = helper_tree.range(0..id);
-                    if let Some((e_j, e_j_h)) = lesser_edge_range.last() {
-                        let (temp1, temp2) = LinkedVertex::insert_between(v, verticies[*e_j_h]);
-                        verticies.push(temp1);
-                        verticies.push(temp2);
+                    let (e_j, e_j_h) = helper.range_query(id, &verticies);
+                    println!("Found edge {e_j} with helper {e_j_h}");
 
-                        helper_tree.insert(*e_j, id);
-                        helper_tree.insert(id, id);
-                    }
+                    // edges.push(((*v).vertex.id, (*verticies[e_j_h]).vertex.id));
+                    let (temp1, temp2) =
+                        LinkedVertex::insert_between(verticies[e_j_h], v, VertexType::Split);
+                    verticies.push(temp1);
+                    verticies.push(temp2);
+
+                    helper.insert_helper(e_j, id);
+                    helper.insert_helper_and_edge(id, id, &verticies);
                 }
                 VertexType::Merge => {
-                    if (*verticies[helper(&(id - 1), &helper_tree, &verticies)]).vert_type
-                        == VertexType::Merge
-                    {
-                        LinkedVertex::insert_between(
+                    if (*verticies[helper.helper(id - 1)]).vert_type == VertexType::Merge {
+                        // edges.push((
+                        //     (*v).vertex.id,
+                        //     (*verticies[helper.helper(id - 1)]).vertex.id,
+                        // ));
+                        let (temp1, temp2) = LinkedVertex::insert_between(
+                            verticies[helper.helper(id - 1)],
                             v,
-                            verticies[helper(&(id - 1), &helper_tree, &verticies)],
+                            VertexType::Merge,
                         );
+                        verticies.push(temp1);
+                        verticies.push(temp2);
                     }
 
-                    helper_tree.remove(&(id - 1));
-                    let lesser_edge_range = helper_tree.range(0..id);
-                    if let Some((e_j, e_j_h)) = lesser_edge_range.last() {
-                        println!("Found {e_j}");
-                        if (*verticies[*e_j_h]).vert_type == VertexType::Merge {
-                            let (temp1, temp2) = LinkedVertex::insert_between(verticies[*e_j_h], v);
-                            verticies.push(temp1);
-                            verticies.push(temp2);
-                        }
-                        helper_tree.insert(*e_j, id);
+                    helper.remove_edge(id - 1, &verticies);
+                    let (e_j, e_j_h) = helper.range_query(id, &verticies);
+                    println!("Found edge {e_j} with helper {e_j_h}");
+                    if (*verticies[e_j_h]).vert_type == VertexType::Merge {
+                        // edges.push(((*v).vertex.id, (*verticies[e_j_h]).vertex.id));
+                        let (temp1, temp2) =
+                            LinkedVertex::insert_between(verticies[e_j_h], v, VertexType::Merge);
+                        verticies.push(temp1);
+                        verticies.push(temp2);
                     }
+
+                    helper.insert_helper(e_j, id);
                 }
                 VertexType::Regular => {
                     if is_inner_right(v) {
-                        if (*verticies[helper(&(id - 1), &helper_tree, &verticies)]).vert_type
-                            == VertexType::Merge
-                        {
+                        if (*verticies[helper.helper(id - 1)]).vert_type == VertexType::Merge {
+                            // edges.push((
+                            //     (*v).vertex.id,
+                            //     (*verticies[helper.helper(id - 1)]).vertex.id,
+                            // ));
                             let (temp1, temp2) = LinkedVertex::insert_between(
+                                verticies[helper.helper(id - 1)],
                                 v,
-                                verticies[helper(&(id - 1), &helper_tree, &verticies)],
+                                VertexType::Merge,
                             );
                             verticies.push(temp1);
                             verticies.push(temp2);
                         }
-                        helper_tree.remove(&(id - 1));
-                        helper_tree.insert(id, id);
+                        helper.remove_edge(id - 1, &verticies);
+                        helper.insert_helper_and_edge(id, id, &verticies);
                     } else {
-                        let lesser_edge_range = helper_tree.range(0..id);
-                        if let Some((e_j, e_j_h)) = lesser_edge_range.last() {
-                            if (*verticies[*e_j_h]).vert_type == VertexType::Merge {
-                                let (temp1, temp2) =
-                                    LinkedVertex::insert_between(verticies[*e_j_h], v);
-                                verticies.push(temp1);
-                                verticies.push(temp2);
-                            }
-                            helper_tree.insert(*e_j, id);
+                        let (e_j, e_j_h) = helper.range_query(id, &verticies);
+                        println!("Found edge {e_j} with helper {e_j_h}");
+                        if (*verticies[e_j_h]).vert_type == VertexType::Merge {
+                            // edges.push(((*v).vertex.id, (*verticies[e_j_h]).vertex.id));
+                            let (temp1, temp2) = LinkedVertex::insert_between(
+                                verticies[e_j_h],
+                                v,
+                                VertexType::Merge,
+                            );
+                            verticies.push(temp1);
+                            verticies.push(temp2);
                         }
+                        helper.insert_helper(e_j, id);
                     }
                 }
             }
-            println!("Tree after: {helper_tree:?}");
+            println!("State after: {helper:?}");
         }
     }
 
@@ -305,17 +299,125 @@ pub fn partition_to_y_monotone<T: Float + Copy + Debug + Ord>(
     result
 }
 
+pub fn is_on_left<T: Float + Copy + Debug>(
+    a: *const LinkedVertex<T>,
+    b: *const LinkedVertex<T>,
+) -> bool {
+    unsafe { std::ptr::addr_eq((*a).next.unwrap(), b) }
+}
+
+pub fn is_on_right<T: Float + Copy + Debug>(
+    a: *const LinkedVertex<T>,
+    b: *const LinkedVertex<T>,
+) -> bool {
+    unsafe { std::ptr::addr_eq((*a).prev.unwrap(), b) }
+}
+
+pub fn is_same_side<T: Float + Copy + Debug>(
+    a: *const LinkedVertex<T>,
+    b: *const LinkedVertex<T>,
+) -> bool {
+    is_on_left(a, b) || is_on_right(a, b)
+}
+
 pub fn triangulate_y_monotone_polygon<T: Float + Copy + Debug + Ord>(
-    mut polygon: Vec<Vertex<T>>,
+    polygon: &[Vertex<T>],
 ) -> Vec<Vec<Vertex<T>>> {
-    polygon.sort_by_key(|a| a.y());
+    let mut linked_nodes = LinkedVertex::from_verticies(polygon);
+
+    unsafe {
+        linked_nodes.sort_by_key(|a| (**a).vertex.y());
+    }
     let n = polygon.len();
 
     let mut stack = Vec::with_capacity(n);
-    stack.push(polygon[0]);
-    stack.push(polygon[1]);
+    stack.push(linked_nodes[0]);
+    stack.push(linked_nodes[1]);
 
-    for i in 2..n - 1 {}
+    let mut triangles = Vec::new();
 
-    todo!()
+    for i in 2..n - 1 {
+        let v = linked_nodes[i];
+        if is_same_side(*stack.last().unwrap(), v) {
+            let mut last_popped = stack.pop().unwrap();
+            let is_on_left = is_on_left(last_popped, v);
+            while let Some(popped) = stack.last() {
+                unsafe {
+                    if (is_on_left
+                        && inner_angle(&(**popped).vertex, &(*last_popped).vertex, &(*v).vertex)
+                            < T::from(std::f64::consts::PI).unwrap())
+                        || (!is_on_left
+                            && inner_angle(
+                                &(*v).vertex,
+                                &(*last_popped).vertex,
+                                &(**popped).vertex,
+                            ) < T::from(std::f64::consts::PI).unwrap())
+                    {
+                        let mut poly = Polygon::new(vec![
+                            (*v).vertex,
+                            (*last_popped).vertex,
+                            (**popped).vertex,
+                        ]);
+                        poly.ensure_ccw();
+
+                        last_popped = stack.pop().unwrap();
+                        triangles.push(poly.vertices);
+                    } else {
+                        break;
+                    }
+                }
+            }
+            stack.push(last_popped);
+            stack.push(v);
+        } else {
+            while let Some(value) = stack.pop() {
+                unsafe {
+                    if stack.last().is_some() {
+                        let mut poly = Polygon::new(vec![
+                            (*v).vertex,
+                            (*value).vertex,
+                            (**stack.last().unwrap()).vertex,
+                        ]);
+                        poly.ensure_ccw();
+                        triangles.push(poly.vertices);
+                    }
+                }
+            }
+            stack.push(linked_nodes[((i as i32) - 1) as usize]);
+            stack.push(linked_nodes[i]);
+        }
+    }
+
+    let last = linked_nodes.last().unwrap();
+
+    // add final triangle
+    let mut helper = stack[0];
+    for vert in stack[1..((stack.len() as i32) - 1) as usize].iter() {
+        unsafe {
+            let mut poly = Polygon::new(vec![(**last).vertex, (*helper).vertex, (**vert).vertex]);
+            poly.ensure_ccw();
+
+            triangles.push(poly.vertices);
+            helper = *vert;
+        }
+    }
+    // connect last triangle
+    unsafe {
+        let mut poly = Polygon::new(vec![
+            (**last).vertex,
+            (*helper).vertex,
+            (**stack.last().unwrap()).vertex,
+        ]);
+        poly.ensure_ccw();
+        triangles.push(poly.vertices);
+    }
+
+    // Clean up memory
+    for n in linked_nodes {
+        unsafe {
+            drop(Box::from_raw(n));
+        }
+    }
+
+    triangles
 }
