@@ -1,6 +1,9 @@
 use num::Float;
 
-use crate::objects::{color::Color, vertex::Vertex};
+use crate::objects::{
+    color::{BLUE, Color, GREEN, MAGENTA, RED, YELLOW},
+    vertex::Vertex,
+};
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
 pub enum VertexType {
@@ -14,11 +17,11 @@ pub enum VertexType {
 impl From<VertexType> for Color {
     fn from(value: VertexType) -> Self {
         match value {
-            VertexType::Start => [0.0, 1.0, 0.0, 1.0],
-            VertexType::Split => [0.0, 0.0, 1.0, 1.0],
-            VertexType::End => [1.0, 0.0, 0.0, 1.0],
-            VertexType::Merge => [1.0, 0.0, 1.0, 1.0],
-            VertexType::Regular => [0.0, 1.0, 1.0, 1.0],
+            VertexType::Start => GREEN,
+            VertexType::Split => BLUE,
+            VertexType::End => RED,
+            VertexType::Merge => MAGENTA,
+            VertexType::Regular => YELLOW,
         }
     }
 }
