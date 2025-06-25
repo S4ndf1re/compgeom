@@ -217,7 +217,7 @@ pub fn partition_to_y_monotone<T: Float + Copy + Debug + Ord>(
                     if (*verticies[e_j_h]).vert_type == VertexType::Merge {
                         // edges.push(((*v).vertex.id, (*verticies[e_j_h]).vertex.id));
                         let (temp1, temp2) =
-                            LinkedVertex::insert_between(verticies[e_j_h], v, VertexType::Merge);
+                            LinkedVertex::insert_between(verticies[e_j_h], v, VertexType::Split);
                         verticies.push(temp1);
                         verticies.push(temp2);
                     }
