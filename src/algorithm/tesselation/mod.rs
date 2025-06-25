@@ -249,7 +249,7 @@ pub fn partition_to_y_monotone<T: Float + Copy + Debug + Ord>(
                             let (temp1, temp2) = LinkedVertex::insert_between(
                                 verticies[e_j_h],
                                 v,
-                                VertexType::Merge,
+                                VertexType::Split,
                             );
                             verticies.push(temp1);
                             verticies.push(temp2);
