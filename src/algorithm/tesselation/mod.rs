@@ -155,6 +155,7 @@ pub fn partition_to_y_monotone<T: Float + Copy + Debug + Ord>(
     while !heap.is_empty() {
         unsafe {
             let (_, v) = heap.pop().unwrap();
+            helper.set_y((*v).vertex.y());
             let id = (*v).index;
             println!(
                 "Iterating over vertex with id: {id} of type: {:?}",
@@ -181,7 +182,7 @@ pub fn partition_to_y_monotone<T: Float + Copy + Debug + Ord>(
                         );
                     }
 
-                    helper.remove_edge(id - 1, &verticies);
+                    helper.remove_edge(prev, &verticies);
                 }
                 VertexType::Split => {
                     let (e_j, e_j_h) = helper.range_query(id, &verticies);
@@ -237,7 +238,7 @@ pub fn partition_to_y_monotone<T: Float + Copy + Debug + Ord>(
                             //     (*v).vertex.id,
                             //     (*verticies[helper.helper(id - 1)]).vertex.id,
                             // ));
-                            let (temp1, temp2) = LinkedVertex::insert_between(
+                            LinkedVertex::insert_between(
                                 v,
                                 verticies[helper.helper(prev)],
                                 VertexType::Merge,

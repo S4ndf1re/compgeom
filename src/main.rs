@@ -186,9 +186,9 @@ fn kd_tree_task() -> Result<(), Box<dyn Error>> {
 
 fn triangulation_task(task1: bool) -> Result<(), Box<dyn Error>> {
     let (mut points, _) =
-        load_polygon_with_hull::<OrderedFloat<f32>>("assets/test/triangulationVlTest.obj");
+        // load_polygon_with_hull::<OrderedFloat<f32>>("assets/test/triangulationVlTest.obj");
     // load_polygon_with_hull::<OrderedFloat<f32>>("assets/PNonConvexSimple1.obj");
-    // load_polygon_with_hull::<OrderedFloat<f32>>("assets/PNonConvexSimple2.obj");
+    load_polygon_with_hull::<OrderedFloat<f32>>("assets/PNonConvexSimple2.obj");
     // points.flip_y();
     points.ensure_ccw();
 
@@ -260,5 +260,5 @@ fn main() -> Result<(), Box<dyn Error>> {
     // bsp_task()
     // kd_tree_task()
     // unimplemented!()
-    triangulation_task(false)
+    triangulation_task(true)
 }
