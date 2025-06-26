@@ -152,9 +152,13 @@ pub fn partition_to_y_monotone<T: Float + Copy + Debug + Ord>(
         }
     }
 
+    let mut polygons = Vec::new();
+
+    let mut v_last = None;
     while !heap.is_empty() {
         unsafe {
             let (_, v) = heap.pop().unwrap();
+
             helper.set_y((*v).vertex.y());
             let id = (*v).index;
             println!(
@@ -179,10 +183,16 @@ pub fn partition_to_y_monotone<T: Float + Copy + Debug + Ord>(
                             verticies[helper.helper(prev)],
                             VertexType::Merge,
                             &mut verticies,
+                            &mut polygons,
                         );
                     }
 
                     helper.remove_edge(prev, &verticies);
+
+                    // It is important to push this vertex to the list of final polygons, even if
+                    // it means the polygon is contained multiple times, otherwise, the polygon
+                    // might get skipped
+                    polygons.push(v);
                 }
                 VertexType::Split => {
                     let (e_j, e_j_h) = helper.range_query(id, &verticies);
@@ -194,6 +204,7 @@ pub fn partition_to_y_monotone<T: Float + Copy + Debug + Ord>(
                         verticies[e_j_h],
                         VertexType::Split,
                         &mut verticies,
+                        &mut polygons,
                     );
 
                     helper.insert_helper(e_j, id);
@@ -211,6 +222,7 @@ pub fn partition_to_y_monotone<T: Float + Copy + Debug + Ord>(
                             verticies[helper.helper(prev)],
                             VertexType::Merge,
                             &mut verticies,
+                            &mut polygons,
                         );
                     }
 
@@ -224,6 +236,7 @@ pub fn partition_to_y_monotone<T: Float + Copy + Debug + Ord>(
                             verticies[e_j_h],
                             VertexType::Split,
                             &mut verticies,
+                            &mut polygons,
                         );
                     }
 
@@ -243,6 +256,7 @@ pub fn partition_to_y_monotone<T: Float + Copy + Debug + Ord>(
                                 verticies[helper.helper(prev)],
                                 VertexType::Merge,
                                 &mut verticies,
+                                &mut polygons,
                             );
                         }
                         helper.remove_edge(prev, &verticies);
@@ -257,6 +271,7 @@ pub fn partition_to_y_monotone<T: Float + Copy + Debug + Ord>(
                                 verticies[e_j_h],
                                 VertexType::Split,
                                 &mut verticies,
+                                &mut polygons,
                             );
                         }
                         helper.insert_helper(e_j, id);
@@ -264,12 +279,13 @@ pub fn partition_to_y_monotone<T: Float + Copy + Debug + Ord>(
                 }
             }
             println!("State after: {helper:?}");
+            v_last = Some(v);
         }
     }
 
-    // Collect linked list into subpolygons
+    // Collect linked list into subpolygons in O(n) time, since each node is visited once
     let mut result = Vec::new();
-    for v in verticies.iter() {
+    for v in polygons.iter() {
         let v = *v;
         unsafe {
             if (*v).visited {
@@ -331,7 +347,7 @@ pub fn triangulate_y_monotone_polygon<T: Float + Copy + Debug + Ord>(
     let mut linked_nodes = LinkedVertex::from_verticies(polygon);
 
     unsafe {
-        linked_nodes.sort_by_key(|a| (**a).vertex.y());
+        linked_nodes.sort_by_key(|a| -(**a).vertex.y());
     }
     let n = polygon.len();
 

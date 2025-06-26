@@ -84,6 +84,7 @@ impl<T: Float + Copy> LinkedVertex<T> {
         mut next: *mut Self,
         vert_type: VertexType,
         verticies: &mut Vec<*mut LinkedVertex<T>>,
+        polygons: &mut Vec<*mut LinkedVertex<T>>,
     ) -> (*mut Self, *mut Self) {
         unsafe {
             let mut was_swapped = false;
@@ -109,6 +110,7 @@ impl<T: Float + Copy> LinkedVertex<T> {
             println!("Inserting edge between {id1} and {id2}");
             let mut new_sub_start = Self::new((*node).vertex, (*node).vert_type, verticies.len());
             verticies.push(new_sub_start);
+            polygons.push(new_sub_start);
 
             let mut new_sub_end = Self::new((*next).vertex, (*next).vert_type, verticies.len());
             verticies.push(new_sub_end);

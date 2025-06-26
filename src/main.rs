@@ -260,5 +260,5 @@ fn main() -> Result<(), Box<dyn Error>> {
     // bsp_task()
     // kd_tree_task()
     // unimplemented!()
-    triangulation_task(true)
+    triangulation_task(false)
 }
