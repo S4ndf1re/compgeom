@@ -131,15 +131,15 @@ pub fn partition_to_y_monotone<T: Float + Copy + Debug + Ord>(
     let (max_idx, _) = verticies
         .iter()
         .enumerate()
-        .max_by(|a, b| a.1.y().cmp(&b.1.y()))
+        .max_by_key(|a| (a.1.y(), -a.1.x()))
         .unwrap();
     verticies.rotate_left(max_idx);
 
-    let n = verticies.len();
     #[allow(clippy::needless_range_loop)]
     for i in 0..verticies.len() {
         verticies[i].id = i;
     }
+    println!("Verticies: {verticies:?}");
 
     let mut verticies = LinkedVertex::from_verticies(&verticies);
 
@@ -148,14 +148,14 @@ pub fn partition_to_y_monotone<T: Float + Copy + Debug + Ord>(
     let mut heap = BinaryHeap::new();
     for vertex in verticies.iter() {
         unsafe {
-            heap.push(((**vertex).vertex.y(), *vertex));
+            heap.push((((**vertex).vertex.y(), -(**vertex).vertex.x()), *vertex));
         }
     }
 
     while !heap.is_empty() {
         unsafe {
             let (_, v) = heap.pop().unwrap();
-            let id = (*v).vertex.id;
+            let id = (*v).index;
             println!(
                 "Iterating over vertex with id: {id} of type: {:?}",
                 (*v).vert_type
@@ -167,18 +167,18 @@ pub fn partition_to_y_monotone<T: Float + Copy + Debug + Ord>(
                     helper.insert_helper_and_edge(id, id, &verticies);
                 }
                 VertexType::End => {
-                    if (*verticies[helper.helper(id - 1)]).vert_type == VertexType::Merge {
+                    let prev = (*(*v).prev.unwrap()).index;
+                    if (*verticies[helper.helper(prev)]).vert_type == VertexType::Merge {
                         // edges.push((
                         //     (*v).vertex.id,
                         //     (*verticies[helper.helper(id - 1)]).vertex.id,
                         // ));
-                        let (temp1, temp2) = LinkedVertex::insert_between(
-                            verticies[helper.helper(id - 1)],
+                        LinkedVertex::insert_between(
                             v,
+                            verticies[helper.helper(prev)],
                             VertexType::Merge,
+                            &mut verticies,
                         );
-                        verticies.push(temp1);
-                        verticies.push(temp2);
                     }
 
                     helper.remove_edge(id - 1, &verticies);
@@ -188,71 +188,75 @@ pub fn partition_to_y_monotone<T: Float + Copy + Debug + Ord>(
                     println!("Found edge {e_j} with helper {e_j_h}");
 
                     // edges.push(((*v).vertex.id, (*verticies[e_j_h]).vertex.id));
-                    let (temp1, temp2) =
-                        LinkedVertex::insert_between(verticies[e_j_h], v, VertexType::Split);
-                    verticies.push(temp1);
-                    verticies.push(temp2);
+                    let (temp1, _) = LinkedVertex::insert_between(
+                        v,
+                        verticies[e_j_h],
+                        VertexType::Split,
+                        &mut verticies,
+                    );
 
                     helper.insert_helper(e_j, id);
-                    helper.insert_helper_and_edge(id, id, &verticies);
+                    helper.insert_helper_and_edge((*temp1).index, (*temp1).index, &verticies);
                 }
                 VertexType::Merge => {
-                    if (*verticies[helper.helper(id - 1)]).vert_type == VertexType::Merge {
+                    let prev = (*(*v).prev.unwrap()).index;
+                    if (*verticies[helper.helper(prev)]).vert_type == VertexType::Merge {
                         // edges.push((
                         //     (*v).vertex.id,
                         //     (*verticies[helper.helper(id - 1)]).vertex.id,
                         // ));
-                        let (temp1, temp2) = LinkedVertex::insert_between(
-                            verticies[helper.helper(id - 1)],
+                        let (v2, _) = LinkedVertex::insert_between(
                             v,
+                            verticies[helper.helper(prev)],
                             VertexType::Merge,
+                            &mut verticies,
                         );
-                        verticies.push(temp1);
-                        verticies.push(temp2);
                     }
 
-                    helper.remove_edge(id - 1, &verticies);
+                    helper.remove_edge(prev, &verticies);
                     let (e_j, e_j_h) = helper.range_query(id, &verticies);
                     println!("Found edge {e_j} with helper {e_j_h}");
                     if (*verticies[e_j_h]).vert_type == VertexType::Merge {
                         // edges.push(((*v).vertex.id, (*verticies[e_j_h]).vertex.id));
-                        let (temp1, temp2) =
-                            LinkedVertex::insert_between(verticies[e_j_h], v, VertexType::Split);
-                        verticies.push(temp1);
-                        verticies.push(temp2);
+                        LinkedVertex::insert_between(
+                            v,
+                            verticies[e_j_h],
+                            VertexType::Split,
+                            &mut verticies,
+                        );
                     }
 
                     helper.insert_helper(e_j, id);
                 }
                 VertexType::Regular => {
                     if is_inner_right(v) {
-                        if (*verticies[helper.helper(id - 1)]).vert_type == VertexType::Merge {
+                        let prev = (*(*v).prev.unwrap()).index;
+                        println!("Prev idx : {prev}");
+                        if (*verticies[helper.helper(prev)]).vert_type == VertexType::Merge {
                             // edges.push((
                             //     (*v).vertex.id,
                             //     (*verticies[helper.helper(id - 1)]).vertex.id,
                             // ));
                             let (temp1, temp2) = LinkedVertex::insert_between(
-                                verticies[helper.helper(id - 1)],
                                 v,
+                                verticies[helper.helper(prev)],
                                 VertexType::Merge,
+                                &mut verticies,
                             );
-                            verticies.push(temp1);
-                            verticies.push(temp2);
                         }
-                        helper.remove_edge(id - 1, &verticies);
+                        helper.remove_edge(prev, &verticies);
                         helper.insert_helper_and_edge(id, id, &verticies);
                     } else {
                         let (e_j, e_j_h) = helper.range_query(id, &verticies);
                         println!("Found edge {e_j} with helper {e_j_h}");
                         if (*verticies[e_j_h]).vert_type == VertexType::Merge {
                             // edges.push(((*v).vertex.id, (*verticies[e_j_h]).vertex.id));
-                            let (temp1, temp2) = LinkedVertex::insert_between(
-                                verticies[e_j_h],
+                            LinkedVertex::insert_between(
                                 v,
+                                verticies[e_j_h],
                                 VertexType::Split,
+                                &mut verticies,
                             );
-                            verticies.push(temp1);
-                            verticies.push(temp2);
                         }
                         helper.insert_helper(e_j, id);
                     }

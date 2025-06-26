@@ -237,6 +237,7 @@ where
     T: Debug + Copy,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({:?}, {:?})", self.x(), self.y())
+        let id = self.id;
+        write!(f, "(id: {}, {:?}, {:?})", id, self.x(), self.y())
     }
 }

@@ -27,6 +27,7 @@ impl From<VertexType> for Color {
 }
 
 pub struct LinkedVertex<T: Float + Copy> {
+    pub index: usize,
     pub vertex: Vertex<T>,
     pub vert_type: VertexType,
     pub prev: Option<*const LinkedVertex<T>>,
@@ -35,8 +36,9 @@ pub struct LinkedVertex<T: Float + Copy> {
 }
 
 impl<T: Float + Copy> LinkedVertex<T> {
-    fn new(vertex: Vertex<T>, vert_type: VertexType) -> *mut Self {
+    fn new(vertex: Vertex<T>, vert_type: VertexType, index: usize) -> *mut Self {
         Box::into_raw(Box::new(Self {
+            index,
             vertex,
             vert_type,
             prev: None,
@@ -48,12 +50,12 @@ impl<T: Float + Copy> LinkedVertex<T> {
     pub fn from_verticies(verticies: &[Vertex<T>]) -> Vec<*mut Self> {
         assert!(verticies.len() >= 2);
 
-        let first = Self::new(verticies[0], VertexType::Regular);
+        let first = Self::new(verticies[0], VertexType::Regular, verticies[0].id);
         let mut current = first;
         let mut result = vec![first];
 
         for i in 1..verticies.len() {
-            let node = Self::new(verticies[i], VertexType::Regular);
+            let node = Self::new(verticies[i], VertexType::Regular, verticies[i].id);
             unsafe {
                 (*node).prev = Some(current);
                 (*current).next = Some(node);
@@ -81,28 +83,35 @@ impl<T: Float + Copy> LinkedVertex<T> {
         mut node: *mut Self,
         mut next: *mut Self,
         vert_type: VertexType,
+        verticies: &mut Vec<*mut LinkedVertex<T>>,
     ) -> (*mut Self, *mut Self) {
         unsafe {
+            let mut was_swapped = false;
             if vert_type == VertexType::Merge {
                 let y1 = (*node).vertex.y();
                 let y2 = (*next).vertex.y();
                 if y1 < y2 {
                     std::mem::swap(&mut node, &mut next);
+                    was_swapped = true;
                 }
             } else if vert_type == VertexType::Split {
                 let y1 = (*node).vertex.y();
                 let y2 = (*next).vertex.y();
                 if y1 > y2 {
                     std::mem::swap(&mut node, &mut next);
+                    was_swapped = true;
                 }
             }
 
-            let id1 = (*node).vertex.id;
-            let id2 = (*next).vertex.id;
+            let id1 = (*node).index;
+            let id2 = (*next).index;
 
             println!("Inserting edge between {id1} and {id2}");
-            let new_sub_start = Self::new((*node).vertex, (*node).vert_type);
-            let new_sub_end = Self::new((*next).vertex, (*next).vert_type);
+            let mut new_sub_start = Self::new((*node).vertex, (*node).vert_type, verticies.len());
+            verticies.push(new_sub_start);
+
+            let mut new_sub_end = Self::new((*next).vertex, (*next).vert_type, verticies.len());
+            verticies.push(new_sub_end);
 
             // Remove old connections and create subgraph
             Self::connect(new_sub_start, (*node).next.unwrap() as *mut _);
@@ -115,6 +124,9 @@ impl<T: Float + Copy> LinkedVertex<T> {
             // Connect old graph back together
             Self::connect(node, next);
 
+            if was_swapped {
+                std::mem::swap(&mut new_sub_start, &mut new_sub_end);
+            }
             (new_sub_start, new_sub_end)
         }
     }
