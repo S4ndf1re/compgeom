@@ -217,7 +217,7 @@ pub fn partition_to_y_monotone<T: Float + Copy + Debug + Ord>(
                         //     (*v).vertex.id,
                         //     (*verticies[helper.helper(id - 1)]).vertex.id,
                         // ));
-                        let (v2, _) = LinkedVertex::insert_between(
+                        LinkedVertex::insert_between(
                             v,
                             verticies[helper.helper(prev)],
                             VertexType::Merge,
@@ -372,7 +372,7 @@ pub fn triangulate_y_monotone_polygon<T: Float + Copy + Debug + Ord>(
                                 &(*v).vertex,
                                 &(*last_popped).vertex,
                                 &(**popped).vertex,
-                            ) < T::from(std::f64::consts::PI).unwrap())
+                            ) > T::from(std::f64::consts::PI).unwrap())
                     {
                         let mut poly = Polygon::new(vec![
                             (*v).vertex,

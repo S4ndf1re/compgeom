@@ -54,7 +54,7 @@ where
     T: Debug + Copy + Float + Display,
 {
     fn to_renderable(
-        self,
+        &self,
     ) -> Vec<(
         crate::basic_rendering::live_renderable::ZDepth,
         gl::types::GLenum,

@@ -10,6 +10,7 @@ use crate::algorithm::sweep_line::context::IntersectionMode;
 use crate::basic_rendering::renderer::DrawMode;
 use crate::objects::polygon::Polygon;
 use algorithm::bsp::{PointOrientation, generate_points, line_decider};
+use algorithm::delaunay::half_edge::{self, HalfEdgeDs};
 use algorithm::kd_tree::tree::KdTree;
 use algorithm::sweep_line::sweep_line_algo::sweep_line_intersections;
 use algorithm::tesselation::{
@@ -186,10 +187,10 @@ fn kd_tree_task() -> Result<(), Box<dyn Error>> {
 
 fn triangulation_task(task1: bool) -> Result<(), Box<dyn Error>> {
     let (mut points, _) =
-        // load_polygon_with_hull::<OrderedFloat<f32>>("assets/test/triangulationVlTest.obj");
+        load_polygon_with_hull::<OrderedFloat<f32>>("assets/test/triangulationVlTest.obj");
     // load_polygon_with_hull::<OrderedFloat<f32>>("assets/PNonConvexSimple1.obj");
-    load_polygon_with_hull::<OrderedFloat<f32>>("assets/PNonConvexSimple2.obj");
-    // points.flip_y();
+    // load_polygon_with_hull::<OrderedFloat<f32>>("assets/PNonConvexSimple2.obj");
+    points.flip_y();
     points.ensure_ccw();
 
     let colored_points = classify_verticies_non_pointer(&points.vertices)
@@ -255,10 +256,35 @@ fn triangulation_task(task1: bool) -> Result<(), Box<dyn Error>> {
     app.exit_state
 }
 
+fn delaunay_task() -> Result<(), Box<dyn Error>> {
+    let obj_file_manager =
+        ObjFileManager::<OrderedFloat<f64>>::new("./assets/randomDelaunay20.obj");
+    let polygons = obj_file_manager.get_all_polygons();
+
+    let half_edge = HalfEdgeDs::from_polygons(&polygons);
+    let half_edge = RefCell::new(half_edge);
+
+    let event_loop = winit::event_loop::EventLoop::new().unwrap();
+
+    // make sure, that on macos, transparency is enabled. Linux and Windows may allow for multiple configurations to be loaded, however, macos only provieds one configuration
+    let template = ConfigTemplateBuilder::new()
+        .with_alpha_size(8)
+        .with_transparency(cfg!(cgl_backend));
+
+    // Create a display
+    let display_builder = DisplayBuilder::new().with_window_attributes(Some(window_attributes()));
+
+    let mut app = App::new(template, display_builder, &half_edge, DrawMode::Overlap);
+    event_loop.run_app(&mut app)?;
+
+    app.exit_state
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     // sweep_line_task()
     // bsp_task()
     // kd_tree_task()
     // unimplemented!()
-    triangulation_task(false)
+    // triangulation_task(true)
+    delaunay_task()
 }

@@ -341,7 +341,7 @@ where
     T: Copy + Debug + Float + Display,
 {
     fn to_renderable(
-        self,
+        &self,
     ) -> Vec<(
         ZDepth,
         gl::types::GLenum,

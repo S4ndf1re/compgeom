@@ -97,6 +97,15 @@ where
         self.polygons.len()
     }
 
+    pub fn get_all_polygons(&self) -> Vec<Polygon<T>> {
+        let mut polygons = Vec::new();
+        for i in 0..self.polygons.len() {
+            polygons.push(self.get_polygon(i));
+        }
+
+        polygons
+    }
+
     pub fn get_polygon(&self, idx: usize) -> Polygon<T> {
         assert!(idx < self.len_polygons());
 

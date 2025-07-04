@@ -86,7 +86,7 @@ impl<T> LiveRenderable<T> for AaBbRect<T>
 where
     T: Float + Copy + Debug,
 {
-    fn to_renderable(self) -> Vec<(ZDepth, gl::types::GLenum, Polygon<T>)> {
+    fn to_renderable(&self) -> Vec<(ZDepth, gl::types::GLenum, Polygon<T>)> {
         let mut polygon = Polygon::new(vec![
             (self.x, self.y).into(),
             (self.x + self.w, self.y).into(),

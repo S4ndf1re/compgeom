@@ -2,7 +2,7 @@ use crate::objects::line::Line;
 use num::{Float, cast};
 use std::cmp::Ordering;
 use std::fmt::Debug;
-use std::ops::{Add, Mul, Neg, Sub};
+use std::ops::{Add, Div, Mul, Neg, Sub};
 
 use super::color::Color;
 
@@ -184,6 +184,20 @@ where
     }
 }
 
+impl<T> Div<T> for Vertex<T>
+where
+    T: Float + Copy,
+{
+    type Output = Vertex<T>;
+    fn div(self, rhs: T) -> Self::Output {
+        Self {
+            position: [self.x() / rhs, self.y() / rhs, self.z() / rhs],
+            color: self.color,
+            id: self.id,
+        }
+    }
+}
+
 impl<T> Neg for Vertex<T>
 where
     T: Float + Copy,
@@ -239,5 +253,18 @@ where
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let id = self.id;
         write!(f, "(id: {}, {:?}, {:?})", id, self.x(), self.y())
+    }
+}
+
+impl<T> Default for Vertex<T>
+where
+    T: Default,
+{
+    fn default() -> Self {
+        Self {
+            id: 0,
+            position: [T::default(), T::default(), T::default()],
+            color: [1.0, 0.0, 0.0, 0.0],
+        }
     }
 }

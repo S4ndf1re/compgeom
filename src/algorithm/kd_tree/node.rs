@@ -87,7 +87,7 @@ impl<'n, T> LiveRenderable<T> for VisualisedNode<'n, T>
 where
     T: Copy + Debug + Float,
 {
-    fn to_renderable(self) -> Vec<(ZDepth, gl::types::GLenum, Polygon<T>)> {
+    fn to_renderable(&self) -> Vec<(ZDepth, gl::types::GLenum, Polygon<T>)> {
         if self.node.value.is_none() {
             return vec![];
         }

@@ -93,7 +93,7 @@ where
             self.gl.Clear(gl::COLOR_BUFFER_BIT);
 
             let mut polygons: Vec<(ZDepth, gl::types::GLenum, Polygon<T>)> =
-                self.renderable.borrow().clone().to_renderable();
+                self.renderable.borrow().to_renderable();
 
             // Sort that smaller z-depth value will get rendered first
             polygons.sort_by(|a, b| a.0.cmp(&b.0));
