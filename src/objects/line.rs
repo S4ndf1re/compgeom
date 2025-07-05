@@ -111,6 +111,10 @@ where
             return None;
         }
 
+        self.intersects_no_context(other)
+    }
+
+    pub fn intersects_no_context(&self, other: &Self) -> Option<Vertex<T>> {
         let s1 = self.x2 - self.x1;
         let s2 = other.x2 - other.x1;
 
@@ -142,6 +146,20 @@ where
 
     pub fn is_vertical(&self) -> bool {
         self.direction.x() < T::epsilon() && self.direction.y().abs() > T::epsilon()
+    }
+
+    /// Create  aline by using the centerpoint between a and b and the normal from b->a  (a-b) in
+    /// order to generate a large line;
+    pub fn from_normal_between_points(a: Vertex<T>, b: Vertex<T>) -> Self {
+        let diff = a - b;
+        let normal = diff.normal() * T::from(10_000.0).unwrap();
+
+        let origin = Line::from((a, b)).f(T::from(0.5).unwrap());
+
+        let start = origin - normal;
+        let end = origin + normal;
+
+        Line::from((start, end))
     }
 }
 

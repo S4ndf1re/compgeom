@@ -10,6 +10,7 @@ use crate::algorithm::sweep_line::context::IntersectionMode;
 use crate::basic_rendering::renderer::DrawMode;
 use crate::objects::polygon::Polygon;
 use algorithm::bsp::{PointOrientation, generate_points, line_decider};
+use algorithm::delaunay::Delauny;
 use algorithm::delaunay::half_edge::{self, HalfEdgeDs};
 use algorithm::kd_tree::tree::KdTree;
 use algorithm::sweep_line::sweep_line_algo::sweep_line_intersections;
@@ -261,7 +262,7 @@ fn delaunay_task() -> Result<(), Box<dyn Error>> {
         ObjFileManager::<OrderedFloat<f64>>::new("./assets/randomDelaunay20.obj");
     let polygons = obj_file_manager.get_all_polygons();
 
-    let half_edge = HalfEdgeDs::from_polygons(&polygons);
+    let half_edge = Delauny::new(&polygons);
     let half_edge = RefCell::new(half_edge);
 
     let event_loop = winit::event_loop::EventLoop::new().unwrap();

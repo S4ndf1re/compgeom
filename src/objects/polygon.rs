@@ -14,6 +14,7 @@ where
     T: Debug + Copy,
 {
     pub vertices: Vec<Vertex<T>>,
+    pub include_in_fitting: bool,
 }
 
 impl<T> Polygon<T>
@@ -23,6 +24,7 @@ where
     pub fn new(verticies: Vec<Vertex<T>>) -> Self {
         Self {
             vertices: verticies,
+            include_in_fitting: true,
         }
     }
 
@@ -136,6 +138,13 @@ where
             .into_iter()
             .rev()
             .collect();
+    }
+
+    pub fn disable_include_in_fitting(&mut self) {
+        self.include_in_fitting = false;
+    }
+    pub fn enable_include_in_fitting(&mut self) {
+        self.include_in_fitting = true;
     }
 }
 

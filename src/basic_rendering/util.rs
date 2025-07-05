@@ -122,11 +122,13 @@ pub fn fit_all_polygons<T: Float + Copy + Debug>(
             let mut bounds: (T, T, T, T) = (T::zero(), T::zero(), T::zero(), T::zero());
 
             for p in polygons {
-                let p_bounds = p.2.get_bounds();
-                bounds.0 = bounds.0.min(p_bounds.0);
-                bounds.1 = bounds.1.max(p_bounds.1);
-                bounds.2 = bounds.2.min(p_bounds.2);
-                bounds.3 = bounds.3.max(p_bounds.3);
+                if p.2.include_in_fitting {
+                    let p_bounds = p.2.get_bounds();
+                    bounds.0 = bounds.0.min(p_bounds.0);
+                    bounds.1 = bounds.1.max(p_bounds.1);
+                    bounds.2 = bounds.2.min(p_bounds.2);
+                    bounds.3 = bounds.3.max(p_bounds.3);
+                }
             }
 
             bounds
