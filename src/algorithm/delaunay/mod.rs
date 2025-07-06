@@ -72,7 +72,7 @@ where
 
         renderable.extend(self.half_edge_ds.to_renderable());
 
-        // renderable.extend(self.circles.iter().flat_map(|c| c.to_renderable()));
+        renderable.extend(self.circles.iter().flat_map(|c| c.to_renderable()));
 
         renderable
     }
@@ -102,6 +102,7 @@ where
 
             HeEdge::flip_edge(*choice);
 
+            // self.half_edge_ds.sanity_check();
             self.update_circles();
             self.last_pressed = current_time;
         }

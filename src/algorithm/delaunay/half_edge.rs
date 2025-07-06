@@ -1,4 +1,9 @@
-use std::{collections::HashMap, fmt::Debug, marker::PhantomData, thread::current};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::{Debug, Display},
+    marker::PhantomData,
+    thread::current,
+};
 
 use num::Float;
 
@@ -13,6 +18,7 @@ use crate::{
 };
 
 pub struct HeVertex<T> {
+    pub id: usize,
     pub vertex: Vertex<T>,
     pub edge: Option<*mut HeEdge<T>>,
 }
@@ -23,6 +29,7 @@ where
 {
     fn clone(&self) -> Self {
         Self {
+            id: self.id,
             vertex: self.vertex,
             edge: self.edge,
         }
@@ -35,13 +42,32 @@ where
 {
     fn default() -> Self {
         Self {
+            id: 0,
             vertex: Vertex::default(),
             edge: None,
         }
     }
 }
 
+impl<T> Display for HeVertex<T>
+where
+    T: Debug + Copy,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        unsafe {
+            write!(
+                f,
+                "HeVertex(id: {}, vertex: {:?}, edge: {})",
+                self.id,
+                self.vertex,
+                self.edge.map(|e| (*e).id).unwrap_or_default(),
+            )
+        }
+    }
+}
+
 pub struct HeFace<T> {
+    pub id: usize,
     pub edge: Option<*mut HeEdge<T>>,
     pub color: Color,
     _data: PhantomData<T>,
@@ -52,14 +78,23 @@ where
     T: Float + Copy + Debug,
 {
     pub fn query_verticies(&self) -> Vec<*mut HeVertex<T>> {
-        let mut verticies = Vec::new();
+        unsafe {
+            self.query_edges()
+                .into_iter()
+                .map(|e| (*e).vertex)
+                .collect()
+        }
+    }
+
+    pub fn query_edges(&self) -> Vec<*mut HeEdge<T>> {
+        let mut edges = Vec::new();
 
         unsafe {
             let start_edge = self.edge.unwrap();
             let mut current = start_edge;
 
             loop {
-                verticies.push((*current).vertex);
+                edges.push(current);
                 current = (*current).next.unwrap();
                 if current == start_edge {
                     break;
@@ -67,7 +102,7 @@ where
             }
         }
 
-        verticies
+        edges
     }
 
     pub fn contains_vertex(&self, vertex: *mut HeVertex<T>) -> bool {
@@ -77,13 +112,49 @@ where
     }
 }
 
+impl<T> Display for HeFace<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        unsafe {
+            write!(
+                f,
+                "HeFace(id: {}, edge: {})",
+                self.id,
+                self.edge.map(|e| (*e).id).unwrap_or_default(),
+            )
+        }
+    }
+}
+
 pub struct HeEdge<T> {
+    pub id: usize,
     pub vertex: *mut HeVertex<T>,
     pub pair: Option<*mut HeEdge<T>>,
     pub face: Option<*mut HeFace<T>>,
     pub next: Option<*mut HeEdge<T>>,
     pub prev: Option<*mut HeEdge<T>>,
     _data: PhantomData<T>,
+}
+
+impl<T> Display for HeEdge<T>
+where
+    T: Debug + Copy,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        unsafe {
+            write!(
+                f,
+                "HeEdge(id: {}, pair: {}, next: {}, prev: {}, vertex: {}, from: {}, to: {}, face:  {})",
+                self.id,
+                self.pair.map(|e| (*e).id).unwrap_or_default(),
+                self.next.map(|e| (*e).id).unwrap_or_default(),
+                self.prev.map(|e| (*e).id).unwrap_or_default(),
+                *self.vertex,
+                (*self.vertex).id,
+                self.next.map(|e| (*(*e).vertex).id).unwrap_or_default(),
+                self.face.map(|e| (*e).id).unwrap_or_default(),
+            )
+        }
+    }
 }
 
 impl<T> HeEdge<T>
@@ -135,43 +206,55 @@ where
         }
 
         unsafe {
-            let e4 = (*edge).next.unwrap();
-            let e5 = (*edge).prev.unwrap();
+            let e_next = (*edge).next.unwrap();
+            let e_prev = (*edge).prev.unwrap();
 
             let twin = (*edge).pair.unwrap();
-            let e0 = (*twin).next.unwrap();
-            let e1 = (*twin).prev.unwrap();
+            let t_next = (*twin).next.unwrap();
+            let t_prev = (*twin).prev.unwrap();
 
             // ensure that no vertex or face references e or twin. This is inherently safe, since
             // the edge for both the vertex and the face are arbitrary
-            for half_edge in [e0, e1, e4, e5] {
+            for half_edge in [t_next, t_prev, e_next, e_prev] {
                 (*(*half_edge).vertex).edge = Some(half_edge);
             }
-            (*(*e1).face.unwrap()).edge = Some(e1);
-            (*(*e5).face.unwrap()).edge = Some(e5);
+            (*(*t_prev).face.unwrap()).edge = Some(t_prev);
+            (*(*e_prev).face.unwrap()).edge = Some(e_prev);
 
             // Update the faces and edge and twin. This will result in an inconsistent state. Make
             // sure, the last step after is also executed
-            (*edge).next = Some(e5);
-            (*edge).prev = Some(e0);
-            (*edge).vertex = (*e1).vertex;
-            (*edge).face = (*e5).face;
+            (*edge).next = Some(e_prev);
+            (*edge).prev = Some(t_next);
+            (*edge).vertex = (*t_prev).vertex;
+            (*edge).face = (*e_prev).face;
             // do the same for the twin, in opposite order
-            (*twin).next = Some(e1);
-            (*twin).prev = Some(e4);
-            (*twin).vertex = (*e5).vertex;
-            (*twin).face = (*e1).face;
+            (*twin).next = Some(t_prev);
+            (*twin).prev = Some(e_next);
+            (*twin).vertex = (*e_prev).vertex;
+            (*twin).face = (*t_prev).face;
 
             // bring back consistency
-            (*e0).next = Some(edge);
-            (*e1).next = Some(e4);
-            (*e4).next = Some(twin);
-            (*e5).next = Some(e0);
+            (*t_next).next = Some(edge);
+            (*t_prev).next = Some(e_next);
+            (*e_next).next = Some(twin);
+            (*e_prev).next = Some(t_next);
 
-            (*e0).prev = Some(e5);
-            (*e1).prev = Some(twin);
-            (*e4).prev = Some(e1);
-            (*e5).prev = Some(edge);
+            (*t_next).prev = Some(e_prev);
+            (*t_prev).prev = Some(twin);
+            (*e_next).prev = Some(t_prev);
+            (*e_prev).prev = Some(edge);
+
+            let mut current = (*edge).next.unwrap();
+            while current != edge {
+                (*current).face = (*edge).face;
+                current = (*current).next.unwrap();
+            }
+
+            let mut current = (*twin).next.unwrap();
+            while current != twin {
+                (*current).face = (*twin).face;
+                current = (*current).next.unwrap();
+            }
         }
     }
 }
@@ -184,7 +267,7 @@ pub struct HalfEdgeDs<T> {
 
 impl<T> HalfEdgeDs<T>
 where
-    T: Debug + Copy + Default + Clone,
+    T: Debug + Copy + Clone + Float,
 {
     /// compute the half edge datastructure in two phases. first, construct all verticies and edges
     /// based on the polygons proviced. make sure that the verticies within all polygons are properly connected by vertex.id.
@@ -203,6 +286,7 @@ where
 
         for vertex in polygons.iter().flat_map(|p| &p.vertices) {
             verticies[vertex.id] = Box::into_raw(Box::new(HeVertex {
+                id: vertex.id,
                 vertex: *vertex,
                 edge: None,
             }));
@@ -210,11 +294,13 @@ where
 
         let mut half_edge_tracked: HashMap<(usize, usize), *mut HeEdge<T>> = HashMap::new();
         let mut edges = Vec::new();
+        let mut edge_idx = 0;
 
         let mut faces = Vec::new();
 
-        for polygon in polygons.iter() {
+        for (id, polygon) in polygons.iter().enumerate() {
             let face = Box::into_raw(Box::new(HeFace {
+                id,
                 edge: None,
                 color: GLOBAL_COLOR_GENERATOR.next_color(1.0),
                 _data: PhantomData,
@@ -223,6 +309,7 @@ where
             let mut tmp_edges = Vec::new();
             for vert in &polygon.vertices {
                 let edge = Box::into_raw(Box::new(HeEdge {
+                    id: edge_idx,
                     vertex: verticies[vert.id],
                     pair: None,
                     next: None,
@@ -230,6 +317,7 @@ where
                     face: Some(face),
                     _data: PhantomData,
                 }));
+                edge_idx += 1;
 
                 unsafe {
                     (*face).edge = Some(edge);
@@ -265,9 +353,12 @@ where
         for ((from, to), edge) in &half_edge_tracked {
             // Find the reverse edge going from to->from
             if let Some(twin) = half_edge_tracked.get(&(*to, *from)) {
-                println!(
-                    "Setting halfedge of {edge:?} to {twin:?}, ({from}->{to}), ({to}->{from})",
-                );
+                unsafe {
+                    println!(
+                        "Setting halfedge of {} to {}, ({from}->{to}), ({to}->{from})",
+                        **edge, **twin
+                    );
+                }
                 unsafe {
                     (**edge).pair = Some(*twin);
                 }
@@ -296,6 +387,23 @@ where
     pub fn query_all_edges(&self) -> Vec<*mut HeEdge<T>> {
         self.edges.clone()
     }
+
+    /// Check if am insane for thinking that i am a good programmer (i am not).
+    pub fn sanity_check(&self) {
+        let mut visited_edges = HashMap::new();
+
+        for face in &self.faces {
+            unsafe {
+                let edges = (**face).query_edges();
+                for edge in edges {
+                    if visited_edges.contains_key(&edge) {
+                        panic!("Edge visited two times. aborting")
+                    }
+                    visited_edges.insert(edge, face);
+                }
+            }
+        }
+    }
 }
 
 impl<T> Drop for HalfEdgeDs<T> {
@@ -322,6 +430,36 @@ impl<T> Drop for HalfEdgeDs<T> {
             }
         }
         self.faces.clear();
+    }
+}
+
+impl<T> Display for HalfEdgeDs<T>
+where
+    T: Debug + Copy,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let verticies: Vec<String> = self
+            .verticies
+            .iter()
+            .filter(|v| !v.is_null())
+            .map(|v| unsafe { format!("{}", **v) })
+            .collect();
+
+        let edges: Vec<String> = self
+            .edges
+            .iter()
+            .map(|v| unsafe { format!("{}", **v) })
+            .collect();
+
+        let faces: Vec<String> = self
+            .faces
+            .iter()
+            .map(|v| unsafe { format!("{}", **v) })
+            .collect();
+
+        let _ = writeln!(f, "Verticies: [{}]", verticies.join("\n"));
+        let _ = writeln!(f, "Edges: [{}]", edges.join("\n"));
+        writeln!(f, "Faces: [{}]", faces.join("\n"))
     }
 }
 
